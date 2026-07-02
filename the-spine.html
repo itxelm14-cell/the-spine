@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#15131e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Spine">
+<title>The Spine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#15131e; --surface:#1e1b29; --raised:#262234; --raised2:#2d2940;
+    --border:#332e46; --border-soft:#2a2638;
+    --ink:#ece6dc; --muted:#9a8fb0; --faint:#6f6786;
+    --gold:#f2c879; --gold-dim:rgba(242,200,121,.16);
+    --serif:'Cormorant Garamond',Georgia,serif;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;
+    --mono:ui-monospace,'SF Mono',Menlo,monospace;
+    --rail:90px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;
+    overscroll-behavior-y:none;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  .app{max-width:560px;margin:0 auto;min-height:100vh}
+  ::selection{background:var(--gold-dim)}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  input,textarea,select{font-family:inherit;font-size:16px}
+  textarea{resize:none}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
+
+  .topbar{position:sticky;top:0;z-index:40;background:linear-gradient(var(--bg) 72%,rgba(21,19,30,0));
+    display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 18px 12px}
+  .brand{font-family:var(--serif);font-weight:600;font-size:25px;letter-spacing:.3px;line-height:1}
+  .brand small{font-family:var(--sans);font-weight:500;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--faint);display:block;margin-bottom:3px}
+  .iconbtn{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:var(--muted);
+    background:var(--surface);border:1px solid var(--border-soft)}
+  .iconbtn:active{background:var(--raised)}
+  .iconbtn svg{width:19px;height:19px}
+
+  .view{padding:0 18px 30px;animation:fade .26s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:24px 0 10px}
+
+  /* focus bar */
+  .focusbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0 12px}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);
+    border-radius:999px;padding:7px 12px;font-size:13px;color:var(--muted)}
+  .pill.on{color:var(--bg);background:var(--gold);border-color:var(--gold);font-weight:600}
+  .pill select{background:none;border:none;color:inherit;font-weight:600;font-size:13px;appearance:none}
+  .pill select option{color:#000}
+  .pill .dot{width:9px;height:9px;border-radius:50%}
+
+  /* book + milestone */
+  .book-head{display:flex;align-items:center;gap:12px;margin:24px 0 12px}
+  .book-head .bk{font-family:var(--serif);font-style:italic;font-size:21px;color:var(--gold)}
+  .book-head .ln{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+  .book-head .addms{font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--border-soft);
+    border-radius:999px;padding:5px 11px;display:inline-flex;align-items:center;gap:5px}
+  .book-head .addms svg{width:13px;height:13px}
+
+  .ms{margin-bottom:9px}
+  .ms-head{display:flex;align-items:center;gap:10px;background:var(--raised);border:1px solid var(--border-soft);
+    border-radius:13px;padding:12px 13px}
+  .ms-head:active{border-color:var(--border)}
+  .ms-chev{color:var(--faint);display:grid;place-items:center;transition:transform .2s}
+  .ms-chev svg{width:16px;height:16px}
+  .ms.open .ms-chev{transform:rotate(90deg)}
+  .ms-flag{color:var(--gold);display:grid;place-items:center}
+  .ms-flag svg{width:15px;height:15px}
+  .ms-title{font-family:var(--serif);font-size:19px;font-weight:600;line-height:1.15;flex:1;min-width:0}
+  .ms-count{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .ms-tools{display:flex;gap:3px;margin-left:2px}
+  .ms-tools button{width:26px;height:26px;border-radius:8px;color:var(--faint);display:grid;place-items:center}
+  .ms-tools button:active{background:var(--raised2)}
+  .ms-tools svg{width:13px;height:13px}
+  .ms-body{padding:10px 0 4px 8px;border-left:1px solid var(--border-soft);margin:8px 0 4px 16px}
+  .ms-add{font-size:12.5px;color:var(--muted);padding:7px 4px;display:inline-flex;align-items:center;gap:6px}
+  .ms-add svg{width:14px;height:14px}
+
+  /* compact scene row */
+  .scene{position:relative;display:flex;align-items:center;gap:10px;background:var(--surface);
+    border:1px solid var(--border-soft);border-radius:11px;padding:10px 12px;margin-bottom:8px;transition:border-color .15s}
+  .scene:active{border-color:var(--border)}
+  .scene .sc-main{flex:1;min-width:0}
+  .gist-c{font-family:var(--serif);font-size:16.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gist-c.empty{color:var(--faint);font-style:italic}
+  .sc-sub{display:flex;align-items:center;gap:6px;margin-top:5px}
+  .who{display:flex}
+  .who .av{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:600;
+    color:#1a1626;margin-left:-5px;border:1.5px solid var(--surface)}
+  .who .av:first-child{margin-left:0}
+  .loc-chip{font-size:10.5px;padding:2px 8px;border-radius:999px;font-weight:500;background:var(--raised);color:var(--muted)}
+  .scene .sc-grip{display:grid;place-items:center;width:24px;color:var(--faint);touch-action:none;cursor:grab;flex:none;margin:-4px 0}
+  .scene .sc-grip svg{width:15px;height:15px}
+  .sc-main{flex:1;min-width:0}
+  .slip-lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:11px 0 7px}
+  .ms-head.drop,.book-head.drop{outline:2px dashed var(--gold);outline-offset:3px;border-radius:12px}
+  .sc-tools{display:flex;flex-direction:column;gap:2px}
+  .sc-tools button{width:24px;height:22px;border-radius:6px;color:var(--faint);display:grid;place-items:center}
+  .sc-tools button:active{background:var(--raised)}
+  .sc-tools svg{width:12px;height:12px}
+
+  /* arc rail */
+  .spine{position:relative}
+  .spine.has-rail{padding-right:var(--rail)}
+  .rail{position:absolute;top:0;right:0;width:var(--rail);height:100%;pointer-events:none}
+  .rail svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .rail-head{position:sticky;top:62px;z-index:5;display:flex;justify-content:space-between;
+    font-family:var(--serif);font-style:italic;font-size:12px;color:var(--muted);padding:0 2px 6px}
+
+  .cmp-head{display:flex;flex-direction:column;gap:8px;padding:6px 0 14px}
+  .cmp-pick{display:flex;align-items:center;gap:8px}
+  .cmp-pick .tag{font-family:var(--serif);font-size:18px;font-weight:700;color:var(--gold);width:18px;text-align:center}
+  .cmp-pick .pill select{max-width:120px;text-overflow:ellipsis}
+  .cmp{position:relative;padding:0 27%}
+  .cmp-lane{position:absolute;top:0;bottom:0;width:26%}
+  .cmp-lane.left{left:0}.cmp-lane.right{right:0}
+  .cmp-lane svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .cmp-mid{min-width:0}
+  .cmp-scene{background:var(--surface);border:1px solid var(--border-soft);border-radius:10px;padding:8px 9px;margin-bottom:9px}
+  .cmp-scene.shared{border-color:var(--gold);background:rgba(242,200,121,.07)}
+  .cmp-scene .g{font-family:var(--serif);font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cmp-scene .g.empty{color:var(--faint);font-style:italic}
+  .cmp-scene .pres{display:flex;align-items:center;gap:5px;margin-top:5px;min-height:8px}
+  .cmp-scene .pdot{width:8px;height:8px;border-radius:50%}
+  .shared-lbl{font-size:9px;font-family:var(--mono);color:var(--gold);letter-spacing:.04em}
+  .bond-set{background:var(--raised);border:1px solid var(--border-soft);border-radius:13px;padding:12px 13px;margin-top:10px}
+  .bond-names{font-family:var(--serif);font-size:17px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .bond-names .dot{width:11px;height:11px;border-radius:50%}
+  .bond-banner{display:flex;align-items:center;justify-content:center;gap:6px;margin:2px 0 10px;
+    font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.05em;text-transform:lowercase}
+  .bond-banner:before,.bond-banner:after{content:'';height:1px;flex:1;max-width:60px;background:linear-gradient(90deg,transparent,var(--border))}
+  .bond-banner:after{background:linear-gradient(90deg,var(--border),transparent)}
+  .bond-banner .dot{width:8px;height:8px;border-radius:50%}
+
+  .ftiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .ftile{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+    background:var(--surface);border:1px solid var(--border-soft);border-radius:16px;color:var(--muted);padding:8px}
+  .ftile:active{background:var(--raised)}
+  .ftile.on{border-color:rgba(242,200,121,.5);background:rgba(242,200,121,.06);color:var(--ink)}
+  .ftile .fic svg{width:24px;height:24px}
+  .ftile .flab{font-family:var(--serif);font-size:15px;font-weight:600;text-align:center;line-height:1.05}
+  .ftile .fcount{font-family:var(--mono);font-size:10px;color:var(--gold)}
+  .ftile .fcount.empty{color:var(--faint)}
+  .facet-h{display:flex;align-items:center;gap:9px;font-family:var(--serif);font-size:24px;font-weight:600;margin-bottom:16px}
+  .facet-h svg{width:22px;height:22px;color:var(--gold)}
+  .stats{background:var(--surface);border:1px solid var(--border-soft);border-radius:13px;padding:2px 14px;margin-bottom:10px}
+  .stat{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid var(--border-soft)}
+  .stat:first-child{border-top:none}
+  .stat .sl{color:var(--muted);font-size:13px;flex:none}
+  .stat .sv{font-weight:600;font-size:13px;text-align:right;font-family:var(--serif)}
+  .heat-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -18px;padding:0 18px 10px}
+  .heat{display:inline-block;min-width:100%}
+  .heat-row{display:flex;align-items:center}
+  .heat-name{width:96px;flex:none;position:sticky;left:0;background:var(--bg);z-index:2;font-family:var(--serif);
+    font-size:14px;display:flex;align-items:center;gap:6px;padding:2px 8px 2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .heat-name .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .heat-cell{width:15px;height:22px;flex:none;border-radius:3px;background:var(--surface);margin:2px 1px}
+  .heat-cell.sep{margin-left:6px;box-shadow:inset 2px 0 0 var(--border)}
+  .heat-head{margin-bottom:1px}
+  .heat-tick{height:6px;background:var(--border-soft)}
+  .tdots{display:inline-flex;align-items:center;gap:3px;margin-left:2px}
+  .tdot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .bal-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .bal-name{width:100px;flex:none;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bal-track{flex:1;height:10px;background:var(--surface);border:1px solid var(--border-soft);border-radius:6px;overflow:hidden}
+  .bal-fill{height:100%;border-radius:6px;min-width:3px}
+  .bal-n{font-family:var(--mono);font-size:11px;color:var(--faint);width:22px;text-align:right}
+  .rel-av{display:flex;flex:none}
+  .av2{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;color:#1a1626}
+  .rel-av .av2:last-child{margin-left:-9px;border:2px solid var(--bg)}
+  .rel-ev2{display:flex;justify-content:space-between;gap:10px;align-items:baseline;background:var(--surface);border:1px solid var(--border-soft);border-radius:11px;padding:10px 12px;margin-bottom:9px}
+  .rel-when{font-family:var(--serif);font-size:15px}
+  .rel-stage{font-family:var(--mono);font-size:11px;color:var(--gold);flex:none}
+  .seg-row{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border-soft);border-radius:12px;padding:4px;margin-bottom:16px}
+  .seg{flex:1;padding:8px 4px;border-radius:9px;font-size:13px;color:var(--muted);background:none;border:none;font-family:var(--sans);cursor:pointer}
+  .seg.on{background:var(--gold);color:#1a1626;font-weight:600}
+  .rule-card{background:var(--surface);border:1px solid var(--border-soft);border-radius:13px;padding:13px 14px;margin-bottom:10px}
+  .rule-top{display:flex;align-items:flex-start;gap:10px}
+  .rule-txt{flex:1;font-family:var(--serif);font-size:17px;line-height:1.3}
+  .tl-ev{display:flex;align-items:flex-start;gap:11px;background:var(--surface);border:1px solid var(--border-soft);border-radius:12px;padding:11px 13px;margin-bottom:9px}
+  .tl-when{font-family:var(--mono);font-size:11px;color:var(--gold);flex:none;width:74px;padding-top:2px}
+  .tl-what{flex:1;font-family:var(--serif);font-size:16px;line-height:1.32}
+  .pick-list{max-height:52vh;overflow:auto;margin:2px -4px 0}
+  .pick-list .sheet-row{cursor:pointer}
+  .wounds{border-left:2px solid var(--border);margin-left:7px;padding-left:18px;margin-bottom:6px}
+  .wound{position:relative;background:var(--surface);border:1px solid var(--border-soft);border-radius:13px;padding:13px 14px 15px;margin-bottom:12px}
+  .wound:before{content:'';position:absolute;left:-25px;top:17px;width:11px;height:11px;border-radius:50%;background:var(--gold);border:2px solid var(--bg)}
+  .wound-title{font-family:var(--serif)!important;font-size:19px!important;font-weight:600;border:none!important;background:none!important;padding:2px 0!important;margin-bottom:2px}
+  .wound label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:600;margin:11px 0 5px}
+  .wound .input{padding:9px 11px}
+  .wound-del{position:absolute;top:11px;right:11px;color:var(--faint);z-index:2}
+  .wound-del svg{width:15px;height:15px}
+  .prompt{font-family:var(--serif);font-style:italic;font-size:16.5px;color:var(--muted);background:var(--raised);
+    border-left:2px solid var(--gold);border-radius:8px;padding:11px 14px;margin-bottom:18px;line-height:1.42}
+
+  .conn-row{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border-soft);border-radius:11px;padding:9px 11px;margin-bottom:8px}
+  .conn-lbl{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--muted)}
+  .conn-to{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:14px;margin-left:auto;color:var(--ink)}
+  .conn-to .dot{width:9px;height:9px;border-radius:50%}
+  .conn-del{color:var(--faint)}.conn-del svg{width:14px;height:14px}
+  .web-focus{display:flex;align-items:center;gap:12px;justify-content:center;width:100%;padding:16px;
+    background:rgba(242,200,121,.07);border:1px solid rgba(242,200,121,.4);border-radius:16px;margin-bottom:4px}
+  .web-focus .swatch{display:grid;place-items:center;border-radius:13px;color:#1a1626;font-family:var(--serif);font-weight:600;font-size:18px}
+  .web-name{font-family:var(--serif);font-size:24px;font-weight:600}
+  .web-branches{padding-left:18px;border-left:2px solid var(--border);margin:6px 0 0 24px}
+  .branch{display:flex;align-items:center;gap:9px;margin:15px 0;position:relative;flex-wrap:wrap}
+  .branch:before{content:'';position:absolute;left:-18px;top:18px;width:15px;height:1px;background:var(--border)}
+  .branch-lbl{font-family:var(--mono);font-size:10.5px;color:var(--gold);letter-spacing:.03em;width:100%}
+  .branch-node{display:inline-flex;align-items:center;gap:6px;font-family:var(--serif);font-size:18px;font-weight:600;background:var(--surface);border:1px solid var(--border-soft);border-radius:10px;padding:7px 12px}
+  .branch-node .dot{width:9px;height:9px;border-radius:50%}
+
+  /* capture */
+  .capture-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px;margin-top:18px}
+  .capture-box textarea{width:100%;background:none;border:none;color:var(--ink);font-family:var(--serif);
+    font-size:23px;line-height:1.35;min-height:92px;outline:none}
+  .capture-box textarea::placeholder{color:var(--faint);font-style:italic}
+  .capture-actions{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+  .hint{font-size:12px;color:var(--faint)}
+  .slip{background:var(--surface);border:1px solid var(--border-soft);border-left:3px solid var(--gold);
+    border-radius:12px;padding:13px 14px;margin-bottom:10px}
+  .slip .txt{font-family:var(--serif);font-size:18px;line-height:1.3}
+  .slip .when{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:6px}
+  .slip-actions{display:flex;gap:8px;margin-top:11px}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:11px;padding:10px 15px;
+    font-size:14px;font-weight:600;background:var(--raised);color:var(--ink);border:1px solid var(--border)}
+  .btn:active{background:var(--raised2)}
+  .btn.gold{background:var(--gold);color:#1a1626;border-color:var(--gold)}
+  .btn.ghost{background:none;color:var(--muted)}
+  .btn.sm{padding:7px 12px;font-size:13px;border-radius:9px}
+  .btn.danger{color:#e89898}
+  .btn svg{width:16px;height:16px}
+
+  .row{display:flex;align-items:center;gap:13px;background:var(--surface);border:1px solid var(--border-soft);
+    border-radius:14px;padding:13px 15px;margin-bottom:9px}
+  .row:active{border-color:var(--border)}
+  .row.sub{margin-left:22px;padding:10px 13px;background:var(--raised)}
+  .row .swatch{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-family:var(--serif);
+    font-size:17px;font-weight:600;color:#1a1626;flex:none}
+  .row.sub .swatch{width:28px;height:28px}
+  .row .rt{font-family:var(--serif);font-size:20px;font-weight:600;line-height:1.1}
+  .row.sub .rt{font-size:17px}
+  .row .rs{font-size:12px;color:var(--muted);margin-top:2px}
+  .row .chev{margin-left:auto;color:var(--faint)}
+
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
+    font-weight:600;margin-bottom:8px}
+  .input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 13px;color:var(--ink);outline:none}
+  .code{background:#0d0b14;border:1px solid var(--border-soft);border-radius:10px;padding:10px 12px;margin:0 0 12px;font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--gold);white-space:pre-wrap;overflow-x:auto}
+  .input:focus{border-color:var(--gold)}
+  .gist-input{font-family:var(--serif);font-size:22px;line-height:1.3;min-height:78px;width:100%;background:var(--surface);
+    border:1px solid var(--border);border-radius:12px;padding:13px;color:var(--ink);outline:none}
+  .gist-input:focus{border-color:var(--gold)}
+
+  .chip-pick{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:999px;background:var(--surface);
+    border:1px solid var(--border);font-size:14px;color:var(--muted)}
+  .chip:active{background:var(--raised)}
+  .chip .dot{width:11px;height:11px;border-radius:50%}
+  .chip.on{border-color:transparent;color:#1a1626;font-weight:600;background:var(--gold)}
+  .chip.add{border-style:dashed;color:var(--faint)}
+  .chip.sub{font-size:13px;padding:6px 11px;opacity:.92}
+
+  .trait-set{background:var(--raised);border:1px solid var(--border-soft);border-radius:13px;padding:13px 14px;margin-top:10px}
+  .trait-set .ch-name{font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .trait-row{margin-top:13px}
+  .trait-poles{display:flex;justify-content:space-between;font-family:var(--serif);font-style:italic;font-size:13px;color:var(--muted);margin-bottom:3px}
+  .trait-line{display:flex;align-items:center;gap:10px}
+  .trait-line input[type=range]{flex:1}
+  .val{font-family:var(--mono);font-size:13px;color:var(--gold);width:46px;text-align:right}
+  .delta{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:6px;background:var(--gold-dim);color:var(--gold)}
+  .delta.none{background:var(--border-soft);color:var(--faint)}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:4px;background:var(--border);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--gold);border:3px solid var(--bg);box-shadow:0 0 0 1px var(--gold)}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--gold);border:3px solid var(--bg)}
+
+  .editor-bar{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 18px 10px;position:sticky;top:0;background:var(--bg);z-index:30}
+  .backbtn{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:14px;font-weight:500}
+  .backbtn svg{width:17px;height:17px}
+
+  .empty{text-align:center;padding:40px 24px;color:var(--muted)}
+  .empty .mk{font-family:var(--serif);font-style:italic;font-size:23px;color:var(--ink);margin-bottom:8px}
+  .empty p{font-size:14px;max-width:290px;margin:0 auto 18px;line-height:1.5}
+  .empty .btn{margin:0 5px}
+
+  .nav{position:fixed;bottom:0;left:0;right:0;z-index:50;display:flex;justify-content:center;gap:4px;
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:linear-gradient(rgba(21,19,30,0),var(--bg) 38%)}
+  .nav-inner{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:5px;max-width:560px;width:calc(100% - 28px)}
+  .nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:11px;color:var(--faint);font-size:10.5px;font-weight:600;position:relative}
+  .nav button svg{width:21px;height:21px}
+  .nav button.on{color:var(--gold);background:var(--gold-dim)}
+  .nav .badge{position:absolute;transform:translate(13px,-7px);background:var(--gold);color:#1a1626;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:grid;place-items:center;padding:0 4px;font-family:var(--mono)}
+
+  .scrim{position:fixed;inset:0;background:rgba(8,7,12,.6);z-index:60;display:none;align-items:flex-end;animation:fade .2s}
+  .scrim.show{display:flex}
+  .sheet{background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:22px 22px 0 0;width:100%;max-width:560px;margin:0 auto;padding:8px 20px 28px;animation:up .24s cubic-bezier(.2,.8,.2,1)}
+  @keyframes up{from{transform:translateY(40px)}to{transform:none}}
+  .grabber{width:38px;height:4px;border-radius:4px;background:var(--border);margin:8px auto 14px}
+  .sheet h3{font-family:var(--serif);font-size:23px;font-weight:600;margin:4px 0 14px}
+  .sheet-row{display:flex;align-items:center;gap:12px;padding:13px 2px;border-top:1px solid var(--border-soft)}
+  .sheet-row svg{width:19px;height:19px;color:var(--muted)}
+  .sheet-row .s{font-size:12px;color:var(--muted);margin-top:1px}
+  .inline-add{display:flex;gap:8px;margin-top:10px}
+  .inline-add .input{flex:1}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app"><div id="root"></div></div>
+<div class="nav" id="nav"></div>
+<div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
+
+<script>
+"use strict";
+window.onerror=function(msg,src,line,col){try{var d=document.getElementById('errbar');if(!d){d=document.createElement('div');d.id='errbar';d.setAttribute('style','position:fixed;left:8px;right:8px;bottom:74px;z-index:99999;background:#3a1f28;color:#ffd9d9;font:11px/1.4 ui-monospace,monospace;padding:9px 11px;border:1px solid #7a3b4a;border-radius:10px;max-height:38vh;overflow:auto;white-space:pre-wrap');d.onclick=function(){d.remove();};document.body.appendChild(d);}d.textContent='⚠ '+msg+(line?(' @'+line+':'+col):'')+'  (tap to dismiss)';}catch(_){}return false;};
+/* THE SPINE — vertical map of a story. Data in localStorage; DB module isolated for future cloud sync. */
+const PAL=['#e0a3b4','#9ec79f','#8fb4d9','#c4a3e0','#e6b87a','#7fc4c0','#e09a78','#aab0e8','#cfa0c8','#9ec0a0'];
+const TRAIT_COLORS=['#f2c879','#9ec79f','#8fb4d9','#e0a3b4','#c4a3e0','#7fc4c0'];
+const BOND_STAGES=['strangers','wary','enemies','rivals','allies','friendly','close','lovers','estranged'];
+const CORE_DIMS=[
+  {key:'emp',low:'Empathetic',high:'Objective',info:'Do they lead with feeling and connection, or with cool analysis?'},
+  {key:'open',low:'Open',high:'Discerning',info:'Do they trust readily, or weigh people carefully before letting them in?'},
+  {key:'bold',low:'Bold',high:'Deliberate',info:'Do they leap, or look long before they leap?'},
+  {key:'direct',low:'Direct',high:'Diplomatic',info:'Do they say it plainly, or shape it for the listener?'},
+  {key:'sacr',low:'Self-Sacrificing',high:'Self-Protective',info:'Do they put others first, or guard themselves first?'},
+  {key:'expl',low:'Exploratory',high:'Grounded',info:'Are they pulled toward the new, or rooted in the known?'},
+  {key:'adapt',low:'Adaptive',high:'Structured',info:'Do they flow with change, or build and keep order?'},
+  {key:'forg',low:'Forgiving',high:'Just',info:'Do they lean toward mercy, or toward fairness and consequence?'}
+];
+const PURPOSE_TAGS=['introduce','conflict','romance','reveal','foreshadow','decision','setback','recovery','worldbuilding','twist'];
+const REL_DIMS=[
+  {key:'trust',label:'Trust',low:'guarded',high:'trusting'},
+  {key:'respect',label:'Respect',low:'dismissive',high:'admiring'},
+  {key:'affection',label:'Affection',low:'cold',high:'devoted'},
+  {key:'honesty',label:'Honesty',low:'secretive',high:'open'},
+  {key:'power',label:'Power balance',low:'__A__',high:'__B__'}
+];
+const uid=()=>Math.random().toString(36).slice(2,9);
+const KEY='the-spine-v2';
+
+const DB={ load(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}},
+  save(s){try{localStorage.setItem(KEY,JSON.stringify(s));}catch(e){}} };
+
+/* ---- Optional cloud backup (Firebase). Fully opt-in; app works 100% offline without it. ---- */
+const FBKEY='the-spine-fb';
+let FB={ready:false,user:null,lastT:null};
+let cloudOpen=false;
+const Cloud={
+  cfg(){try{return JSON.parse(localStorage.getItem(FBKEY));}catch(e){return null;}},
+  setCfg(c){localStorage.setItem(FBKEY,JSON.stringify(c));},
+  clear(){localStorage.removeItem(FBKEY);}
+};
+function loadFBsdk(cb,err){
+  if(window.firebase&&window.firebase.database){cb();return;}
+  const base='https://www.gstatic.com/firebasejs/10.12.2/';
+  const files=['firebase-app-compat.js','firebase-auth-compat.js','firebase-database-compat.js'];
+  let i=0;(function nx(){if(i>=files.length){cb();return;}const s=document.createElement('script');s.src=base+files[i++];s.onload=nx;s.onerror=function(){err&&err({message:'Could not reach Firebase — are you online?'});};document.head.appendChild(s);})();
+}
+function fbInit(cfg,cb,err){
+  loadFBsdk(function(){
+    try{
+      if(!firebase.apps||!firebase.apps.length)firebase.initializeApp(cfg);
+      FB.ready=true;
+      firebase.auth().onAuthStateChanged(function(u){FB.user=u;if(u&&FB.lastT==null)cloudFetchMeta();if(cloudOpen)cloudSheet();});
+      cb&&cb();
+    }catch(e){err?err(e):0;}
+  },err);
+}
+function openCloud(){cloudOpen=true;const c=Cloud.cfg();
+  if(c&&!FB.ready){cloudSheet('Connecting…');fbInit(c,function(){cloudSheet();},function(e){cloudSheet((e&&e.message)||'Could not connect.',true);});}
+  else cloudSheet();
+}
+function cloudSheet(msg,isErr){
+  cloudOpen=true;const c=Cloud.cfg();
+  const note=msg?`<div class="hint" style="margin:-2px 0 12px;color:${isErr?'#ff9a9a':'var(--gold)'}">${esc(msg)}</div>`:'';
+  let body;
+  if(!c){
+    body=`<p class="hint" style="margin-bottom:10px">Cloud backup is optional — The Spine works fully offline without it. To turn it on, paste your Firebase web config (Firebase console → Project settings → Your apps → Web → SDK config). Enable <b>Realtime Database</b> first, and set its Rules to require a login:</p>
+      <pre class="code">{ "rules": { ".read": "auth != null", ".write": "auth != null" } }</pre>
+      <textarea class="input" id="fbCfg" style="height:120px;font-family:var(--mono);font-size:12px;line-height:1.4" placeholder="const firebaseConfig = { apiKey: '...', databaseURL: '...', ... }"></textarea>
+      <div style="display:flex;gap:9px;margin-top:12px"><button class="btn ghost" data-act="askCancel" style="flex:1">Cancel</button><button class="btn gold" data-act="cloudConnect" style="flex:1">Connect</button></div>`;
+  } else if(!FB.user){
+    body=`<p class="hint" style="margin-bottom:12px">Sign in to back up and restore. One account is all you need — the same login on another device pulls your story down.</p>
+      <input class="input" id="fbEmail" type="email" value="${esc(FB._email||'')}" placeholder="email" autocapitalize="off" autocomplete="username" style="margin-bottom:9px">
+      <input class="input" id="fbPw" type="password" placeholder="password (6+ characters)" autocomplete="current-password">
+      <div style="display:flex;gap:9px;margin-top:12px"><button class="btn" data-act="cloudSignup" style="flex:1">Create account</button><button class="btn gold" data-act="cloudSignin" style="flex:1">Sign in</button></div>
+      <button class="btn ghost sm" data-act="cloudDisconnect" style="width:100%;margin-top:12px">Disconnect this Firebase</button>`;
+  } else {
+    const last=FB.lastT?('Last backup '+fmt(FB.lastT)):'No cloud backup yet';
+    body=`<div class="sheet-row" style="color:var(--faint)">${ICON.info}<div><div>${esc(FB.user.email||'signed in')}</div><div class="s">${last}</div></div></div>
+      <div class="sheet-row" data-act="cloudBackup">${ICON.up2}<div><div>Back up now</div><div class="s">Copy this device's story to the cloud</div></div></div>
+      <div class="sheet-row" data-act="cloudRestore">${ICON.down2}<div><div>Restore to this device</div><div class="s">Replace what's here with the cloud copy</div></div></div>
+      <button class="btn ghost sm" data-act="cloudSignout" style="width:100%;margin-top:12px">Sign out</button>`;
+  }
+  openSheet(`<h3>Cloud backup</h3>${note}${body}`);
+}
+function cloudFetchMeta(){try{firebase.database().ref('spine/'+FB.user.uid+'/t').get().then(function(s){const v=s.val();if(v){FB.lastT=v;if(cloudOpen)cloudSheet();}}).catch(function(){});}catch(e){}}
+function cloudConnect(){
+  const t=document.getElementById('fbCfg');const text=t?t.value:'';
+  const grab=function(k){const m=text.match(new RegExp(k+"\\s*[:=]\\s*[\"']([^\"']+)[\"']"));return m?m[1]:'';};
+  const cfg={apiKey:grab('apiKey'),authDomain:grab('authDomain'),databaseURL:grab('databaseURL'),projectId:grab('projectId'),storageBucket:grab('storageBucket'),messagingSenderId:grab('messagingSenderId'),appId:grab('appId')};
+  if(!cfg.apiKey){cloudSheet("Couldn't find an apiKey in that — paste the whole config block.",true);return;}
+  if(!cfg.databaseURL){cloudSheet("No databaseURL found. Enable Realtime Database, then copy the config again.",true);return;}
+  Cloud.setCfg(cfg);FB.ready=false;cloudSheet('Connecting…');
+  fbInit(cfg,function(){cloudSheet();},function(e){cloudSheet((e&&e.message)||'Could not connect.',true);});
+}
+function authDo(method){
+  const e=document.getElementById('fbEmail'),p=document.getElementById('fbPw');
+  const email=e?e.value.trim():'',pw=p?p.value:'';
+  if(!email||!pw){cloudSheet('Enter an email and a password.',true);return;}
+  FB._email=email;
+  cloudSheet('Working…');
+  firebase.auth()[method](email,pw).then(function(){FB.lastT=null;cloudSheet();}).catch(function(err){cloudSheet(prettyAuth(err),true);});
+}
+function cloudSignin(){authDo('signInWithEmailAndPassword');}
+function cloudSignup(){authDo('createUserWithEmailAndPassword');}
+function prettyAuth(err){const c=(err&&err.code)||'';
+  if(c.indexOf('wrong-password')>=0||c.indexOf('invalid-credential')>=0)return 'Wrong email or password.';
+  if(c.indexOf('email-already-in-use')>=0)return 'That email already has an account — sign in instead.';
+  if(c.indexOf('user-not-found')>=0)return 'No account yet — tap Create account.';
+  if(c.indexOf('weak-password')>=0)return 'Password needs at least 6 characters.';
+  if(c.indexOf('invalid-email')>=0)return "That email doesn't look right.";
+  if(c.indexOf('network')>=0)return 'Network problem — are you online?';
+  return (err&&err.message)||'Something went wrong.';}
+function cloudBackup(){if(!FB.user)return;cloudSheet('Backing up…');
+  firebase.database().ref('spine/'+FB.user.uid).set({data:JSON.stringify(S),t:Date.now()})
+    .then(function(){FB.lastT=Date.now();cloudSheet('Backed up just now.');})
+    .catch(function(err){cloudSheet((err&&err.message)||'Backup failed.',true);});}
+function cloudRestore(){if(!FB.user)return;
+  openSheet(`<h3>Restore from cloud?</h3><p class="hint" style="margin-bottom:14px">This replaces everything on this device with your cloud backup. The local copy here will be overwritten — export it first if you're unsure.</p>
+   <div style="display:flex;gap:9px"><button class="btn ghost" data-act="openCloud" style="flex:1">Back</button><button class="btn gold" data-act="cloudRestoreDo" style="flex:1">Replace & restore</button></div>`);}
+function cloudRestoreDo(){if(!FB.user)return;cloudSheet('Restoring…');
+  firebase.database().ref('spine/'+FB.user.uid).get().then(function(snap){const v=snap.val();
+    if(!v||!v.data){cloudSheet('No cloud backup found yet — back up first.',true);return;}
+    try{const d=JSON.parse(v.data);S=migrate(d);S.ui.view='spine';DB.save(S);cloudOpen=false;closeSheet();render();}
+    catch(e){cloudSheet('That backup could not be read.',true);}
+  }).catch(function(err){cloudSheet((err&&err.message)||'Restore failed.',true);});}
+function cloudSignout(){try{firebase.auth().signOut();}catch(e){}FB.user=null;FB.lastT=null;cloudSheet();}
+function cloudDisconnect(){Cloud.clear();FB.ready=false;FB.user=null;FB.lastT=null;try{if(window.firebase&&firebase.apps&&firebase.apps.length)firebase.app().delete();}catch(e){}cloudSheet();}
+
+const CHAR_CATS=[
+  {key:'role',label:'Role',type:'multi'},
+  {key:'eyes',label:'Eyes',type:'multi'},
+  {key:'hair',label:'Hair',type:'multi'},
+  {key:'build',label:'Build',type:'multi'},
+  {key:'age',label:'Age',type:'multi'},
+  {key:'marks',label:'Marks',type:'multi'},
+  {key:'nature',label:'Nature',type:'multi'},
+  {key:'custom',label:'Your own tags',type:'multi'}
+];
+const LOC_CATS=[
+  {key:'type',label:'Type',type:'multi'},
+  {key:'terrain',label:'Terrain',type:'multi'},
+  {key:'climate',label:'Climate',type:'multi'},
+  {key:'tech',label:'Tech',type:'multi'},
+  {key:'rule',label:'Rule',type:'multi'},
+  {key:'feel',label:'Feel',type:'multi'},
+  {key:'custom',label:'Your own tags',type:'multi'}
+];
+function defaultPalettes(){return{
+  character:{
+    role:['protagonist','antagonist','ally','mentor','rival','love interest','supporting'],
+    eyes:['brown','blue','green','hazel','grey','amber','black'],
+    hair:['black','brown','blonde','red','white','long','short','braided','curly','bald'],
+    build:['petite','slim','average','athletic','broad','short','tall'],
+    age:['child','teen','young adult','adult','middle-aged','elder'],
+    marks:['scar','tattoo','freckles','glasses','piercing','birthmark'],
+    nature:['brave','guarded','hot-headed','gentle','cunning','loyal','proud','ruthless'],
+    custom:[]
+  },
+  location:{
+    type:['city','town','village','fortress','palace','temple','ruins','outpost','wild'],
+    terrain:['mountains','coast','forest','desert','plains','swamp','river','islands','underground'],
+    climate:['frozen','cold','temperate','warm','tropical','arid'],
+    tech:['ancient','medieval','renaissance','industrial','modern','futuristic','magical'],
+    rule:['monarchy','empire','council','theocracy','democracy','military','lawless','magical order'],
+    feel:['bustling','quiet','dangerous','sacred','decaying','opulent','poor','mysterious'],
+    custom:[]
+  }
+};}
+
+function seed(){return{
+  version:2,
+  books:[{id:'b1',name:'Book One'},{id:'b2',name:'Book Two'},{id:'b3',name:'Book Three'}],
+  milestones:[], scenes:[], slips:[], characters:[],
+  locations:[
+    {id:uid(),name:'City 1',color:PAL[2],parent:null,attrs:{}},
+    {id:uid(),name:'City 2',color:PAL[5],parent:null,attrs:{}},
+    {id:uid(),name:'The Outer Lands',color:PAL[1],parent:null,attrs:{}}
+  ],
+  palettes:defaultPalettes(),
+  connections:[],
+  bonds:{},
+  threads:[],
+  themes:[],
+  objects:[],
+  orgs:[],
+  rules:[],
+  ui:{view:'spine',focusChar:null,focusTrait:null,open:{},editScene:null,openCast:null,openLoc:null}
+};}
+function migrate(s){
+  const d=seed();
+  s.milestones=s.milestones||[]; s.palettes=s.palettes||d.palettes;
+  for(const k of ['character','location']){ s.palettes[k]=Object.assign({},d.palettes[k],s.palettes[k]||{}); }
+  s.scenes=(s.scenes||[]).map(sc=>Object.assign({milestone:null,arc:{},characters:[],location:null},sc));
+  s.characters=(s.characters||[]).map(c=>Object.assign({attrs:{},traits:[],struggles:[],core:{},wounds:[]},c));
+  s.characters.forEach(c=>{c.core=c.core||{};c.wounds=c.wounds||[];
+    if(c.struggles&&c.struggles.length&&!c.wounds.length){c.wounds=c.struggles.map(st=>({id:st.id||uid(),title:st.text||'',event:'',belief:'',behavior:'',healing:''}));}});
+  s.locations=(s.locations||[]).map(l=>Object.assign({parent:null,attrs:{},facets:{}},l));
+  s.slips=(s.slips||[]).map(sl=>Object.assign({book:'b1',characters:[]},sl));
+  s.connections=s.connections||[];
+  s.bonds=s.bonds||{};
+  s.threads=s.threads||[];
+  s.themes=s.themes||[];
+  s.objects=(s.objects||[]).map(o=>Object.assign({color:PAL[0],note:'',owner:null,places:[],chars:[],scenes:[]},o));
+  s.orgs=(s.orgs||[]).map(o=>Object.assign({color:PAL[0],goal:'',leader:null,members:[],hq:null,allies:[],enemies:[],scenes:[]},o));
+  s.rules=(s.rules||[]).map(r=>Object.assign({scenes:[]},r));
+  s.scenes.forEach(sc=>{sc.links=sc.links||[];});
+  s.locations.forEach(l=>{l.timeline=l.timeline||[];});
+  s.locations.forEach(l=>{l.facets=l.facets||{};Object.keys(l.facets).forEach(k=>{if(Array.isArray(l.facets[k]))l.facets[k]={notes:l.facets[k]};});});
+  const coerce=(at,cats)=>{at=at||{};cats.forEach(c=>{const v=at[c.key];if(typeof v==='string')at[c.key]=[v];});return at;};
+  s.characters.forEach(c=>{c.attrs=coerce(c.attrs,CHAR_CATS);});
+  s.locations.forEach(l=>{l.attrs=coerce(l.attrs,LOC_CATS);});
+  if(!s.ui) s.ui=d.ui; s.ui.open=s.ui.open||{};
+  s.ui.editScene=null; s.ui.openCast=null; s.ui.openLoc=null; s.ui.facet=null; s.ui.filter=null;
+  return s;
+}
+let S=migrate(DB.load()||seed());
+
+let saveT; function save(){clearTimeout(saveT);saveT=setTimeout(()=>DB.save(S),160);}
+function go(v){S.ui.view=v;render();window.scrollTo(0,0);}
+
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const txt=v=>Array.isArray(v)?v.join(', '):(v||'');
+const charById=id=>S.characters.find(c=>c.id===id);
+const locById=id=>S.locations.find(l=>l.id===id);
+const bookById=id=>S.books.find(b=>b.id===id);
+function togID(arr,id){const i=arr.indexOf(id);i>=0?arr.splice(i,1):arr.push(id);}
+function slipConvert(id,type){
+  const sl=S.slips.find(x=>x.id===id);if(!sl)return;const t=(sl.text||'').trim();
+  const rm=()=>{S.slips=S.slips.filter(x=>x.id!==id);};
+  if(type==='character'){const c=newChar(t.slice(0,40)||'New character');rm();S.ui.openCast=c.id;go('castOne');}
+  else if(type==='place'){const l={id:uid(),name:t.slice(0,40)||'New place',color:PAL[S.locations.length%PAL.length],parent:null,attrs:{},facets:{},timeline:[]};S.locations.push(l);rm();S.ui.openLoc=l.id;S.ui.facet=null;S.ui.worldTab='places';go('locOne');}
+  else if(type==='object'){const o={id:uid(),name:t.slice(0,40)||'New object',color:PAL[S.objects.length%PAL.length],note:'',owner:null,places:[],chars:[],scenes:[]};S.objects.push(o);rm();S.ui.openObj=o.id;go('objOne');}
+  else if(type==='org'){const o={id:uid(),name:t.slice(0,40)||'New group',color:PAL[S.orgs.length%PAL.length],goal:'',leader:null,members:[],hq:null,allies:[],enemies:[],scenes:[]};S.orgs.push(o);rm();S.ui.openOrg=o.id;go('orgOne');}
+  else if(type==='rule'){S.rules.push({id:uid(),text:t||'New rule',scenes:[]});rm();S.ui.worldTab='rules';go('world');}
+}
+const initials=n=>(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+const milestonesOf=b=>S.milestones.filter(m=>m.book===b);
+const scenesOfMs=m=>S.scenes.filter(s=>s.milestone===m);
+const looseOf=b=>S.scenes.filter(s=>s.book===b&&!s.milestone);
+
+function flatScenes(){let out=[];S.books.forEach(b=>{
+  looseOf(b.id).forEach(s=>out.push(s));
+  milestonesOf(b.id).forEach(m=>scenesOfMs(m.id).forEach(s=>out.push(s)));});return out;}
+
+function traitTrack(cid,tid){
+  const ch=charById(cid);const tr=ch&&ch.traits.find(t=>t.id===tid);if(!tr)return[];
+  let cur=typeof tr.start==='number'?tr.start:5;
+  return flatScenes().map(sc=>{const set=sc.arc&&sc.arc[cid]&&typeof sc.arc[cid][tid]==='number';
+    if(set)cur=sc.arc[cid][tid];return{id:sc.id,val:cur,set};});
+}
+function prevTraitVal(cid,tid,sid){
+  const tr=charById(cid)?.traits.find(t=>t.id===tid);let cur=tr?(typeof tr.start==='number'?tr.start:5):5;
+  for(const sc of flatScenes()){if(sc.id===sid)break;
+    if(sc.arc&&sc.arc[cid]&&typeof sc.arc[cid][tid]==='number')cur=sc.arc[cid][tid];}return cur;
+}
+const pairKey=(a,b)=>[a,b].sort().join('|');
+function bondPoints(a,b){const k=pairKey(a,b);return (S.bonds[k]&&S.bonds[k].points)||{};}
+function setBondStage(a,b,sceneId,stage){const k=pairKey(a,b);S.bonds[k]=S.bonds[k]||{points:{}};if(stage)S.bonds[k].points[sceneId]=stage;else delete S.bonds[k].points[sceneId];}
+function bondTrack(a,b){const pts=bondPoints(a,b);let cur=null;return flatScenes().map(sc=>{if(pts[sc.id]!=null)cur=pts[sc.id];return {id:sc.id,stage:cur,set:pts[sc.id]!=null};});}
+function bondStageAtScene(a,b,sceneId){const pts=bondPoints(a,b);let cur=null;for(const sc of flatScenes()){if(pts[sc.id]!=null)cur=pts[sc.id];if(sc.id===sceneId)break;}return cur;}
+
+const root=document.getElementById('root');
+function render(){
+  const v=S.ui.view;
+  if(v==='scene')return sceneEditor();
+  if(v==='castOne')return charPage();
+  if(v==='relOne')return relPage();
+  if(v==='objOne')return objPage();
+  if(v==='orgOne')return orgPage();
+  if(v==='locOne')return locPage();
+  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView}[v]||viewSpine)();
+  renderNav();bind();
+  if(v==='spine'){drawRail();requestAnimationFrame(drawRail);setTimeout(drawRail,260);}
+  if(v==='compare'){requestAnimationFrame(drawCompare);setTimeout(drawCompare,80);setTimeout(drawCompare,300);}
+  save();
+}
+function topbar(){
+  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group'};
+  return `<div class="topbar"><div class="brand"><small>${esc(t[S.ui.view]||'')}</small>The Spine</div>
+    <button class="iconbtn" data-act="settings" aria-label="Settings">${ICON.gear}</button></div>`;
+}
+
+/* ---------------- SPINE ---------------- */
+function viewSpine(){
+  if(S.scenes.length===0 && S.milestones.length===0){
+    return `<div class="view"><div class="empty"><div class="mk">An empty page.</div>
+      <p>Build the bones first if you like — lay out the milestones a book moves toward — or just catch a moment and sort it later.</p>
+      <button class="btn gold" data-act="goCapture">${ICON.feather} Catch a moment</button>
+      <button class="btn" data-act="addMs" data-book="b1">${ICON.flag} Lay a milestone</button></div></div>`;
+  }
+  const fc=S.ui.focusChar?charById(S.ui.focusChar):null;
+  const hasRail=!!(fc&&fc.traits.length);
+  const filt=S.ui.filter;
+  const fmatch=s=>!filt||(filt.kind==='thread'?(s.threads||[]).includes(filt.id):(s.themes||[]).includes(filt.id));
+  const forceOpen=hasRail||!!filt;
+  let h=`<div class="view">${focusBar()}${filterBar()}<div class="spine ${hasRail?'has-rail':''}" id="spine">`;
+  if(hasRail){const tr=fc.traits.find(t=>t.id===S.ui.focusTrait)||fc.traits[0];
+    h+=`<div class="rail-head"><span>${esc(tr.poleLow||'—')}</span><span>${esc(tr.poleHigh||'—')}</span></div>`;}
+  S.books.forEach(b=>{
+    const ms=milestonesOf(b.id), loose=looseOf(b.id).filter(fmatch);
+    const hasAny=loose.length||ms.some(m=>scenesOfMs(m.id).some(fmatch));
+    if(filt&&!hasAny)return;
+    h+=`<div class="book-head" data-book="${b.id}"><span class="bk">${esc(b.name)}</span><span class="ln"></span>
+      <button class="addms" data-act="addMs" data-book="${b.id}">${ICON.plus} milestone</button></div>`;
+    if(loose.length){ h+=`<div class="ms open"><div class="ms-body" style="margin-left:6px;border:none;padding-left:0">
+      <div class="ms-add" style="color:var(--faint);font-style:italic">Loose — not under a milestone yet</div>`;
+      loose.forEach((s,i)=>h+=sceneRow(s,i,loose.length)); h+=`</div></div>`; }
+    ms.forEach((m,mi)=>{
+      const full=scenesOfMs(m.id),list=filt?full.filter(fmatch):full;
+      if(filt&&!list.length)return;
+      const open=forceOpen||!!S.ui.open[m.id];
+      h+=`<div class="ms ${open?'open':''}">
+        <div class="ms-head" data-act="toggleMs" data-id="${m.id}">
+          <span class="ms-chev">${ICON.chevR}</span><span class="ms-flag">${ICON.flag}</span>
+          <span class="ms-title" data-act="renameMs" data-id="${m.id}">${esc(m.name)}</span>
+          <span class="ms-count">${filt?list.length+'/'+full.length:full.length}</span>
+          <span class="ms-tools">
+            <button data-act="msUp" data-id="${m.id}" ${mi===0?'disabled style=opacity:.3':''}>${ICON.up}</button>
+            <button data-act="msDown" data-id="${m.id}" ${mi===ms.length-1?'disabled style=opacity:.3':''}>${ICON.down}</button>
+            <button data-act="delMs" data-id="${m.id}">${ICON.trash}</button>
+          </span></div>`;
+      if(open){ h+=`<div class="ms-body">`;
+        list.forEach((s,i)=>h+=sceneRow(s,i,list.length));
+        h+=`<button class="ms-add" data-act="addScene" data-ms="${m.id}" data-book="${b.id}">${ICON.plus} scene</button></div>`;
+      }
+      h+=`</div>`;
+    });
+  });
+  h+=hasRail?`<div class="rail" id="rail"><svg id="railsvg" preserveAspectRatio="none"></svg></div>`:'';
+  h+=`</div></div>`;return h;
+}
+function filterBar(){
+  if(!S.threads.length&&!S.themes.length)return `<div class="focusbar" style="padding-top:0"><button class="chip" data-act="goBalance">${ICON.balance} Balance</button></div>`;
+  const f=S.ui.filter;let b='<div class="focusbar" style="padding-top:0">';
+  S.threads.forEach(t=>{const on=f&&f.kind==='thread'&&f.id===t.id;
+    b+=`<button class="chip ${on?'on':''}" data-act="filterSet" data-kind="thread" data-id="${t.id}" style="${on?`background:${t.color};color:#1a1626`:''}"><span class="dot" style="background:${t.color}"></span>${esc(t.name)}</button>`;});
+  S.themes.forEach(t=>{const on=f&&f.kind==='theme'&&f.id===t.id;
+    b+=`<button class="chip ${on?'on':''}" data-act="filterSet" data-kind="theme" data-id="${t.id}">${esc(t.name)}</button>`;});
+  if(f)b+=`<button class="chip" data-act="filterClear">clear</button>`;
+  b+=`<button class="chip" data-act="goBalance">${ICON.balance} Balance</button>`;
+  return b+'</div>';
+}
+function balanceView(){
+  const flat=flatScenes();
+  const bars=(title,items)=>{const max=Math.max(1,...items.map(i=>i.count));
+    return `<div class="eyebrow">${title}</div>${items.length?items.map(i=>`<div class="bal-row"><span class="bal-name">${esc(i.name)}</span><div class="bal-track"><div class="bal-fill" style="width:${Math.round(i.count/max*100)}%;background:${i.color||'var(--gold)'}"></div></div><span class="bal-n">${i.count}</span></div>`).join(''):'<div class="hint" style="margin-bottom:12px">nothing tagged yet</div>'}`;};
+  const th=S.threads.map(t=>({name:t.name,color:t.color,count:flat.filter(s=>(s.threads||[]).includes(t.id)).length}));
+  const tm=S.themes.map(t=>({name:t.name,count:flat.filter(s=>(s.themes||[]).includes(t.id)).length}));
+  const pu=PURPOSE_TAGS.map(p=>({name:p,count:flat.filter(s=>(s.purpose||[]).includes(p)).length})).filter(i=>i.count);
+  return `<div class="view"><div class="hint" style="margin:4px 0 16px">A mirror, not a judge — just the counts of what your ${flat.length} scenes carry.</div>
+    ${bars('Threads',th)}<div style="height:10px"></div>${bars('Themes',tm)}<div style="height:10px"></div>${bars('What scenes do',pu)}</div>`;
+}
+function sceneRow(s,i,n){
+  const who=(s.characters||[]).map(id=>{const c=charById(id);return c?`<span class="av" style="background:${c.color}">${esc(initials(c.name))}</span>`:'';}).join('');
+  const lc=s.location&&locById(s.location);
+  const tdots=(s.threads||[]).map(id=>{const t=S.threads.find(x=>x.id===id);return t?`<span class="tdot" style="background:${t.color}"></span>`:'';}).join('');
+  const g=(s.gist||'').trim();
+  return `<div class="scene" data-id="${s.id}">
+    <div class="sc-grip" data-grip="${s.id}" title="Drag to another book or milestone · tap to move">${ICON.grip}</div>
+    <div class="sc-main" data-act="openScene" data-id="${s.id}">
+      <div class="gist-c ${g?'':'empty'}">${g?esc(g):'untitled — tap to write'}</div>
+      ${(who||lc||tdots)?`<div class="sc-sub">${who?`<div class="who">${who}</div>`:''}${lc?`<span class="loc-chip" style="color:${lc.color}">${esc(lc.name)}</span>`:''}${tdots?`<span class="tdots">${tdots}</span>`:''}</div>`:''}
+    </div>
+    <div class="sc-tools">
+      <button data-act="scUp" data-id="${s.id}" ${i===0?'disabled style=opacity:.25':''}>${ICON.up}</button>
+      <button data-act="scDown" data-id="${s.id}" ${i===n-1?'disabled style=opacity:.25':''}>${ICON.down}</button>
+    </div></div>`;
+}
+function focusBar(){
+  const opts=S.characters.map(c=>`<option value="${c.id}" ${S.ui.focusChar===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+  let b=`<div class="focusbar"><span class="pill ${S.ui.focusChar?'on':''}">${ICON.arc}
+    <select data-act="focusChar"><option value="">Arc — off</option>${opts}</select></span>`;
+  const fc=S.ui.focusChar&&charById(S.ui.focusChar);
+  if(fc&&fc.traits.length){const cur=fc.traits.find(t=>t.id===S.ui.focusTrait)||fc.traits[0];
+    b+=`<span class="pill on"><span class="dot" style="background:${cur.color}"></span>
+      <select data-act="focusTrait">${fc.traits.map(t=>`<option value="${t.id}" ${cur.id===t.id?'selected':''}>${esc(t.name||'(unnamed arc)')}</option>`).join('')}</select></span>`;
+  } else if(fc){ b+=`<span class="hint">Add an arc on ${esc(fc.name)}'s page to see the line.</span>`; }
+  if(S.characters.filter(c=>c.traits.length).length>=2) b+=`<button class="pill" data-act="openCompare">${ICON.cmp} Compare two</button>`;
+  return b+`</div>`;
+}
+function drawRail(){
+  const fc=S.ui.focusChar&&charById(S.ui.focusChar);if(!fc||!fc.traits.length)return;
+  const svg=document.getElementById('railsvg'),spine=document.getElementById('spine');if(!svg||!spine)return;
+  const tr=fc.traits.find(t=>t.id===S.ui.focusTrait)||fc.traits[0];
+  const W=90,PAD=13,sRect=spine.getBoundingClientRect(),H=spine.scrollHeight;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.style.height=H+'px';
+  const cards=[...spine.querySelectorAll('.scene')];
+  const cy=id=>{const el=cards.find(c=>c.dataset.id===id);if(!el)return null;const r=el.getBoundingClientRect();return r.top-sRect.top+r.height/2;};
+  const xf=v=>PAD+((v-1)/9)*(W-2*PAD);
+  let d='',dots='',labels='';
+  traitTrack(fc.id,tr.id).forEach(p=>{const y=cy(p.id);if(y==null)return;const x=xf(p.val);
+    d+=(d?' L':'M')+x.toFixed(1)+' '+y.toFixed(1);
+    if(p.set){dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="${tr.color}" stroke="#15131e" stroke-width="2"/>`;
+      labels+=`<text x="${(x+(x>W/2?-8:8)).toFixed(1)}" y="${(y+3).toFixed(1)}" font-size="9.5" font-family="ui-monospace,monospace" fill="${tr.color}" text-anchor="${x>W/2?'end':'start'}">${p.val}</text>`;}});
+  svg.innerHTML=`<line x1="${xf(1)}" y1="0" x2="${xf(1)}" y2="${H}" stroke="#2a2638"/><line x1="${xf(10)}" y1="0" x2="${xf(10)}" y2="${H}" stroke="#2a2638"/>
+    <path d="${d}" fill="none" stroke="${tr.color}" stroke-width="2.5" stroke-linejoin="round"/>${dots}${labels}`;
+}
+
+/* ---------------- COMPARE TWO ARCS ---------------- */
+function cmpPicker(side){
+  const cur=S.ui['cmp'+side], ch=cur&&charById(cur), curT=S.ui['cmp'+side+'t'];
+  const charOpts=S.characters.map(c=>`<option value="${c.id}" ${cur===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+  let traitSel='';
+  if(ch&&ch.traits.length){const t=ch.traits.find(x=>x.id===curT)||ch.traits[0];
+    traitSel=`<span class="pill on"><span class="dot" style="background:${t.color}"></span><select data-act="cmpTrait" data-side="${side}">${ch.traits.map(x=>`<option value="${x.id}" ${t.id===x.id?'selected':''}>${esc(x.name||'arc')}</option>`).join('')}</select></span>`;}
+  return `<div class="cmp-pick"><span class="tag">${side}</span>
+    <span class="pill ${cur?'on':''}" ${cur?`style="background:${ch.color};color:#1a1626;border-color:transparent"`:''}><select data-act="cmpChar" data-side="${side}"><option value="">choose…</option>${charOpts}</select></span>${traitSel}</div>`;
+}
+function cmpView(){
+  const A=S.ui.cmpA&&charById(S.ui.cmpA), B=S.ui.cmpB&&charById(S.ui.cmpB);
+  const At=A&&(A.traits.find(t=>t.id===S.ui.cmpAt)||A.traits[0]);
+  const Bt=B&&(B.traits.find(t=>t.id===S.ui.cmpBt)||B.traits[0]);
+  let h=`<div class="view"><div class="cmp-head">${cmpPicker('A')}${cmpPicker('B')}</div>`;
+  if(!(A&&At&&B&&Bt)){
+    h+=`<div class="empty"><div class="mk">Pick two.</div><p>Choose a character and one of their arcs on each side, and watch them move down the same scenes.</p></div></div>`;return h;}
+  const flat=flatScenes();
+  if(!flat.length){h+=`<div class="empty"><p>No scenes to compare across yet.</p></div></div>`;return h;}
+  h+=`<div class="cmp" id="cmp"><div class="cmp-lane left"><svg id="cmpsvgA"></svg></div><div class="cmp-lane right"><svg id="cmpsvgB"></svg></div><div class="cmp-mid">`;
+  const bt=bondTrack(A.id,B.id);let prevStage=null;
+  flat.forEach((s,idx)=>{
+    const stage=bt[idx].stage,changed=stage!=null&&stage!==prevStage;prevStage=stage;
+    if(changed)h+=`<div class="bond-banner"><span class="dot" style="background:${A.color}"></span><span class="dot" style="background:${B.color}"></span>${esc(stage)}</div>`;
+    const inA=(s.characters||[]).includes(A.id),inB=(s.characters||[]).includes(B.id),shared=inA&&inB;
+    h+=`<div class="cmp-scene ${shared?'shared':''}" data-id="${s.id}" data-act="openScene">
+      <div class="g ${s.gist?'':'empty'}">${s.gist?esc(s.gist):'untitled'}</div>
+      <div class="pres">${inA?`<span class="pdot" style="background:${A.color}"></span>`:''}${inB?`<span class="pdot" style="background:${B.color}"></span>`:''}${shared?'<span class="shared-lbl">they cross here</span>':''}</div></div>`;});
+  h+=`</div></div></div>`;return h;
+}
+function cmpDraw(svg,tr,track,cy,H){
+  if(!svg)return;const w=svg.clientWidth||90,PAD=15;
+  svg.setAttribute('viewBox',`0 0 ${w} ${H}`);svg.style.height=H+'px';
+  const xf=v=>PAD+((v-1)/9)*(w-2*PAD);
+  let d='',dots='',labels='';
+  track.forEach(p=>{const y=cy(p.id);if(y==null)return;const x=xf(p.val);
+    d+=(d?' L':'M')+x.toFixed(1)+' '+y.toFixed(1);
+    if(p.set){dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${tr.color}" stroke="#15131e" stroke-width="2"/>`;
+      labels+=`<text x="${(x+(x>w/2?-7:7)).toFixed(1)}" y="${(y+3).toFixed(1)}" font-size="9" font-family="ui-monospace,monospace" fill="${tr.color}" text-anchor="${x>w/2?'end':'start'}">${p.val}</text>`;}});
+  svg.innerHTML=`<text x="${PAD}" y="11" font-size="10" font-style="italic" font-family="Cormorant Garamond,serif" fill="#9a8fb0">${esc(tr.poleLow||'')}</text>
+    <text x="${w-PAD}" y="11" font-size="10" font-style="italic" font-family="Cormorant Garamond,serif" fill="#9a8fb0" text-anchor="end">${esc(tr.poleHigh||'')}</text>
+    <line x1="${xf(1)}" y1="16" x2="${xf(1)}" y2="${H}" stroke="#2a2638"/><line x1="${xf(10)}" y1="16" x2="${xf(10)}" y2="${H}" stroke="#2a2638"/>
+    <path d="${d}" fill="none" stroke="${tr.color}" stroke-width="2.5" stroke-linejoin="round"/>${dots}${labels}`;
+}
+function drawCompare(){
+  const A=S.ui.cmpA&&charById(S.ui.cmpA),B=S.ui.cmpB&&charById(S.ui.cmpB);if(!A||!B)return;
+  const At=A.traits.find(t=>t.id===S.ui.cmpAt)||A.traits[0],Bt=B.traits.find(t=>t.id===S.ui.cmpBt)||B.traits[0];if(!At||!Bt)return;
+  const cmp=document.getElementById('cmp');if(!cmp)return;
+  const rect=cmp.getBoundingClientRect(),H=cmp.scrollHeight,rows=[...cmp.querySelectorAll('.cmp-scene')];
+  const cy=id=>{const el=rows.find(r=>r.dataset.id===id);if(!el)return null;const r=el.getBoundingClientRect();return r.top-rect.top+r.height/2;};
+  cmpDraw(document.getElementById('cmpsvgA'),At,traitTrack(A.id,At.id),cy,H);
+  cmpDraw(document.getElementById('cmpsvgB'),Bt,traitTrack(B.id,Bt.id),cy,H);
+}
+
+/* ---------------- CAPTURE ---------------- */
+function viewCapture(){
+  const slips=S.slips.slice().reverse();
+  const inbox=slips.map(sl=>{
+    const bk=S.books.map(b=>`<button class="chip sub ${(sl.book||'b1')===b.id?'on':''}" data-act="slipBook" data-id="${sl.id}" data-b="${b.id}">${esc(b.name)}</button>`).join('');
+    const who=S.characters.map(c=>`<button class="chip sub ${(sl.characters||[]).includes(c.id)?'on':''}" data-act="slipChar" data-id="${sl.id}" data-c="${c.id}" style="${(sl.characters||[]).includes(c.id)?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')
+      +`<button class="chip sub add" data-act="slipNewChar" data-id="${sl.id}">+ new</button>`;
+    return `<div class="slip"><div class="txt">${esc(sl.text)}</div><div class="when">${fmt(sl.t)}</div>
+      <div class="slip-lbl">Book</div><div class="chip-pick">${bk}</div>
+      <div class="slip-lbl">Who's in it</div><div class="chip-pick">${who}</div>
+      <div class="slip-actions"><button class="btn sm gold" data-act="fileSlip" data-id="${sl.id}">${ICON.down2} Make it a scene</button>
+      <button class="btn sm ghost danger" data-act="delSlip" data-id="${sl.id}">Discard</button></div>
+      <div class="slip-lbl">…or turn it into</div>
+      <div class="chip-pick"><button class="chip sub" data-act="slipTo" data-id="${sl.id}" data-t="character">${ICON.cast} Character</button>
+        <button class="chip sub" data-act="slipTo" data-id="${sl.id}" data-t="place">${ICON.pin2} Place</button>
+        <button class="chip sub" data-act="slipTo" data-id="${sl.id}" data-t="object">${ICON.gem} Object</button>
+        <button class="chip sub" data-act="slipTo" data-id="${sl.id}" data-t="org">${ICON.group} Group</button>
+        <button class="chip sub" data-act="slipTo" data-id="${sl.id}" data-t="rule">${ICON.scroll} Rule</button></div></div>`;
+  }).join('');
+  return `<div class="view"><div class="capture-box">
+    <textarea id="capInput" placeholder="What just came to you?"></textarea>
+    <div class="capture-actions"><span class="hint">Dump it. Sort it later.</span>
+      <button class="btn gold" data-act="saveSlip">${ICON.feather} Keep</button></div></div>
+    ${slips.length?`<div class="eyebrow">Unsorted — ${slips.length}</div>${inbox}`:
+      `<div class="empty" style="padding-top:30px"><div class="mk">Nothing waiting.</div><p>What you keep lands here until you drop it into the spine.</p></div>`}</div>`;
+}
+
+/* ---------------- SCENE EDITOR ---------------- */
+function sceneEditor(){
+  const s=S.scenes.find(x=>x.id===S.ui.editScene);if(!s){go('spine');return;}
+  const present=s.characters||[];
+  const bookBtns=S.books.map(b=>`<button class="chip ${s.book===b.id?'on':''}" data-act="setBook" data-id="${b.id}">${esc(b.name)}</button>`).join('');
+  const msInBook=milestonesOf(s.book);
+  const msBtns=msInBook.map(m=>`<button class="chip ${s.milestone===m.id?'on':''}" data-act="setMs" data-id="${m.id}">${esc(m.name)}</button>`).join('')
+    +`<button class="chip ${!s.milestone?'on':''}" data-act="setMs" data-id="">loose</button>`
+    +`<button class="chip add" data-act="newMsHere" data-book="${s.book}">+ new</button>`;
+  const charBtns=S.characters.map(c=>`<button class="chip ${present.includes(c.id)?'on':''}" data-act="togglePresent" data-id="${c.id}"
+      style="${present.includes(c.id)?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')
+    +`<button class="chip add" data-act="quickChar">+ new</button>`;
+
+  const traitBlocks=present.map(id=>{const c=charById(id);if(!c)return'';
+    if(!c.traits.length)return `<div class="trait-set"><div class="ch-name"><span class="dot" style="width:11px;height:11px;border-radius:50%;background:${c.color}"></span>${esc(c.name)}</div><span class="hint">No arcs yet — add one on their page.</span></div>`;
+    const rows=c.traits.map(t=>{const v=(s.arc&&s.arc[id]&&typeof s.arc[id][t.id]==='number')?s.arc[id][t.id]:null;
+      const prev=prevTraitVal(id,t.id,s.id);const shown=v==null?prev:v;
+      const delta=v==null?`<span class="delta none">unchanged</span>`:(v===prev?`<span class="delta none">holds ${v}</span>`:`<span class="delta">${prev} → ${v}</span>`);
+      return `<div class="trait-row"><div class="trait-poles"><span>${esc(t.poleLow)}</span><span>${esc(t.poleHigh)}</span></div>
+        <div class="trait-line"><input type="range" min="1" max="10" value="${shown}" data-act="setTrait" data-cid="${id}" data-tid="${t.id}">
+          <span class="val" id="val-${id}-${t.id}">${shown}/10</span></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:6px">${delta}
+          ${v!=null?`<button class="btn sm ghost" style="padding:2px 8px" data-act="clearTrait" data-cid="${id}" data-tid="${t.id}">clear</button>`:''}</div></div>`;}).join('');
+    return `<div class="trait-set"><div class="ch-name"><span class="dot" style="width:11px;height:11px;border-radius:50%;background:${c.color}"></span>${esc(c.name)}</div>${rows}</div>`;}).join('');
+
+  let bondBlocks='';
+  if(present.length>=2){
+    for(let i=0;i<present.length;i++)for(let j=i+1;j<present.length;j++){
+      const a=present[i],b=present[j],ca=charById(a),cb=charById(b);if(!ca||!cb)continue;
+      const here=bondPoints(a,b)[s.id],carried=bondStageAtScene(a,b,s.id);
+      bondBlocks+=`<div class="bond-set"><div class="bond-names"><span class="dot" style="background:${ca.color}"></span>${esc(ca.name)} <span style="color:var(--faint)">⟷</span> <span class="dot" style="background:${cb.color}"></span>${esc(cb.name)}</div>
+        <div class="chip-pick" style="margin-top:9px">${BOND_STAGES.map(st=>`<button class="chip ${here===st?'on':''}" data-act="setBond" data-a="${a}" data-b="${b}" data-st="${st}">${st}</button>`).join('')}
+          <button class="chip add" data-act="bondCustom" data-a="${a}" data-b="${b}">+ custom</button>${here?`<button class="chip add" data-act="setBond" data-a="${a}" data-b="${b}" data-st="">clear</button>`:''}</div>
+        ${here?`<div class="hint" style="margin-top:6px">marked “${esc(here)}” here</div>`:(carried?`<div class="hint" style="margin-top:6px">“${esc(carried)}” coming in — unchanged here</div>`:'')}</div>`;
+    }
+  }
+  const locBtns=S.locations.filter(l=>!l.parent).map(l=>{
+    const kids=S.locations.filter(x=>x.parent===l.id);
+    return `<button class="chip ${s.location===l.id?'on':''}" data-act="setLoc" data-id="${l.id}" style="${s.location===l.id?`background:${l.color};color:#1a1626`:''}"><span class="dot" style="background:${l.color}"></span>${esc(l.name)}</button>`
+      +kids.map(k=>`<button class="chip sub ${s.location===k.id?'on':''}" data-act="setLoc" data-id="${k.id}" style="${s.location===k.id?`background:${k.color};color:#1a1626`:''}">↳ ${esc(k.name)}</button>`).join('');
+  }).join('')+(s.location?`<button class="chip add" data-act="setLoc" data-id="">clear</button>`:'');
+
+  let currentBlocks='';
+  present.forEach(id=>{const c=charById(id);if(!c||!c.core||!Object.keys(c.core).length)return;
+    const cur=(s.current&&s.current[id])||{};
+    const rows=CORE_DIMS.filter(d=>d.key in c.core).map(d=>{const trueV=c.core[d.key];const setHere=typeof cur[d.key]==='number';const here=setHere?cur[d.key]:trueV;
+      return `<div class="trait-row"><div class="trait-poles"><span>${d.low}</span><span>${d.high}</span></div>
+        <div class="trait-line"><input type="range" min="1" max="10" value="${here}" data-act="curVal" data-cid="${id}" data-k="${d.key}"><span class="val" id="cur-${id}-${d.key}">${here}/10</span></div>
+        <div class="hint" style="margin-top:4px">true nature ${trueV}${setHere&&here!==trueV?` · <span style="color:var(--gold)">acting ${here} here</span>`:''}${setHere?` · <button class="btn sm ghost" data-act="clearCur" data-cid="${id}" data-k="${d.key}" style="padding:0 7px">reset</button>`:''}</div></div>`;}).join('');
+    currentBlocks+=`<div class="trait-set"><div class="ch-name"><span class="dot" style="width:11px;height:11px;border-radius:50%;background:${c.color}"></span>${esc(c.name)}</div>${rows}</div>`;});
+  const threadChips=S.threads.map(t=>`<button class="chip ${(s.threads||[]).includes(t.id)?'on':''}" data-act="toggleThread" data-id="${t.id}" style="${(s.threads||[]).includes(t.id)?`background:${t.color};color:#1a1626`:''}"><span class="dot" style="background:${t.color}"></span>${esc(t.name)}</button>`).join('')+`<button class="chip add" data-act="newThread">+ new</button>`;
+  const themeChips=S.themes.map(t=>`<button class="chip ${(s.themes||[]).includes(t.id)?'on':''}" data-act="toggleTheme" data-id="${t.id}">${esc(t.name)}</button>`).join('')+`<button class="chip add" data-act="newTheme">+ new</button>`;
+  const purposeChips=PURPOSE_TAGS.map(p=>`<button class="chip ${(s.purpose||[]).includes(p)?'on':''}" data-act="togglePurpose" data-v="${p}">${p}</button>`).join('')+(s.purpose||[]).filter(p=>!PURPOSE_TAGS.includes(p)).map(p=>`<button class="chip on" data-act="togglePurpose" data-v="${esc(p)}">${esc(p)}</button>`).join('')+`<button class="chip add" data-act="purposeCustom">+ custom</button>`;
+  const outLinks=(s.links||[]).map(lk=>{const t=S.scenes.find(x=>x.id===lk.to);if(!t)return'';const verb=lk.kind==='payoff'?'sets up →':'leads to →';
+    return `<div class="conn-row"><span class="conn-lbl">${verb}</span><button class="conn-to" data-act="openScene" data-id="${t.id}">“${esc((t.gist||'untitled').slice(0,24))}”</button><button class="conn-del" data-act="unlinkScene" data-id="${lk.id}">${ICON.x}</button></div>`;}).join('');
+  const inLinks=flatScenes().filter(x=>x.id!==s.id&&(x.links||[]).some(lk=>lk.to===s.id)).map(x=>{const lk=x.links.find(l=>l.to===s.id);const verb=lk.kind==='payoff'?'set up in ←':'follows from ←';
+    return `<div class="conn-row" style="opacity:.8"><span class="conn-lbl">${verb}</span><button class="conn-to" data-act="openScene" data-id="${x.id}">“${esc((x.gist||'untitled').slice(0,24))}”</button></div>`;}).join('');
+
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="closeScene">${ICON.back} Spine</button>
+    <span style="margin-left:auto"></span><button class="iconbtn" data-act="delScene">${ICON.trash}</button></div>
+    <div class="view">
+      <div class="field"><label>The moment</label>
+        <textarea class="gist-input" id="gist" placeholder="Say what happens, in a line…">${esc(s.gist||'')}</textarea></div>
+      <div class="field"><label>Book</label><div class="chip-pick">${bookBtns}</div></div>
+      <div class="field"><label>Milestone it builds toward</label><div class="chip-pick">${msBtns}</div></div>
+      <div class="field"><label>Who's in it</label><div class="chip-pick">${charBtns}</div></div>
+      ${present.length?`<div class="field"><label>Where they are on their arcs</label>${traitBlocks}</div>`:''}
+      ${bondBlocks?`<div class="field"><label>Between them — how they stand here</label>${bondBlocks}</div>`:''}
+      ${currentBlocks?`<div class="field"><label>Acting now — vs their true nature</label>${currentBlocks}</div>`:''}
+      <div class="field"><label>Where it happens</label><div class="chip-pick">${locBtns}</div></div>
+      <div class="field"><label>Threads</label><div class="chip-pick">${threadChips}</div></div>
+      <div class="field"><label>Themes</label><div class="chip-pick">${themeChips}</div></div>
+      <div class="field"><label>What this scene does</label><div class="chip-pick">${purposeChips}</div></div>
+      <div class="field"><label>Links to other scenes</label>
+        ${outLinks}${inLinks}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:${(outLinks||inLinks)?'8':'0'}px">
+          <button class="btn sm" data-act="linkScene" data-kind="payoff">+ sets up a scene</button>
+          <button class="btn sm" data-act="linkScene" data-kind="effect">+ leads to a scene</button>
+        </div></div>
+    </div>`;
+  renderNav();bind();const g=document.getElementById('gist');if(g){g.style.height='auto';g.style.height=g.scrollHeight+'px';}save();
+}
+
+/* ---------------- CAST ---------------- */
+function viewCast(){
+  const rows=S.characters.map(c=>{const role=txt(c.attrs?.role);
+    return `<div class="row" data-act="openChar" data-id="${c.id}"><div class="swatch" style="background:${c.color}">${esc(initials(c.name))}</div>
+    <div><div class="rt">${esc(c.name)}</div><div class="rs">${role?esc(role):'no role set'}${c.traits.length?' · '+c.traits.length+' arc'+(c.traits.length>1?'s':''):''}</div></div>
+    <span class="chev">${ICON.chevR}</span></div>`;}).join('');
+  return `<div class="view"><div class="eyebrow">Characters</div>
+    ${S.characters.length?rows:`<div class="empty"><div class="mk">No one yet.</div><p>Add the people the story is about. Each carries their own arcs down the spine.</p></div>`}
+    <button class="btn gold" style="width:100%;margin-top:6px" data-act="addChar">${ICON.plus} New character</button>
+    ${S.characters.length?`<button class="btn ghost" style="width:100%;margin-top:8px" data-act="goHeat">${ICON.cast} Who's in what — heatmap</button>`:''}
+    ${S.characters.length>1?`<button class="btn ghost" style="width:100%;margin-top:8px" data-act="goRels">${ICON.branch} Relationships</button>`:''}</div>`;
+}
+function catHTML(cat,palettes,attrs){
+  const opts=palettes[cat.key]||[];const val=attrs[cat.key];
+  const chips=opts.map(o=>{const on=cat.type==='multi'?(Array.isArray(val)&&val.includes(o)):val===o;
+    return `<button class="chip ${on?'on':''}" data-act="attr" data-key="${cat.key}" data-type="${cat.type}" data-val="${esc(o)}">${esc(o)}</button>`;}).join('');
+  return `<div class="field"><label>${cat.label}</label>
+    <div class="chip-pick">${chips}<button class="chip add" data-act="attrAdd" data-key="${cat.key}" data-type="${cat.type}">+ add</button></div></div>`;
+}
+function paletteHTML(cats,palettes,attrs){return cats.map(c=>catHTML(c,palettes,attrs)).join('');}
+
+const FACETS=[
+  {key:'overview',label:'Overview',icon:'world',cats:['type'],
+    prompt:'What is the one thing that sets this place apart from anywhere else?',
+    lists:[{key:'defining',label:'Defining details'}]},
+  {key:'geography',label:'Geography',icon:'mountain',cats:['terrain','climate'],
+    prompt:'What natural barriers wall it in, and how does the land shape how people live, work, and travel?',
+    lists:[{key:'features',label:'Landmarks & features'},{key:'nature',label:'Plants & creatures'}]},
+  {key:'power',label:'Power',icon:'crown',cats:['rule'],
+    prompt:'Who holds power, how did they get it, and who is trying to take it?',
+    lists:[{key:'laws',label:'Laws & taboos'},{key:'factions',label:'Factions & players'}]},
+  {key:'economy',label:'Economy',icon:'coin',
+    prompt:'What does this place have that others want — and what does it lack?',
+    lists:[{key:'trade',label:'Trade & exports'},{key:'currency',label:'Currency'},{key:'resources',label:'Resources & scarcity'},{key:'classes',label:'Classes & wealth'}]},
+  {key:'culture',label:'Culture',icon:'mask',cats:['feel'],
+    prompt:'What do people here value, fear, and celebrate? What would mark someone as an outsider?',
+    lists:[{key:'customs',label:'Customs & rituals'},{key:'values',label:'Values & taboos'},{key:'daily',label:'Daily life — food, dress'}]},
+  {key:'belief',label:'Belief',icon:'flame',
+    prompt:'What do people worship or believe in, and how does it bleed into law and daily life?',
+    lists:[{key:'faith',label:'Religion & myth'},{key:'powers',label:'Gods / forces'}]},
+  {key:'tech',label:'Tech & magic',icon:'gearsm',cats:['tech'],
+    prompt:'What can it do, what does it COST, and what can it never do? Limits are what make a system feel real.',
+    lists:[{key:'rules',label:'Rules & limits'},{key:'costs',label:'Costs & dangers'}]},
+  {key:'history',label:'History',icon:'scroll',
+    prompt:'What past events still cast a shadow over the present?',
+    lists:[{key:'events',label:'Key events'},{key:'legends',label:'Legends & lore'}]},
+  {key:'language',label:'Language',icon:'speech',
+    prompt:'How do people speak, name things, and address each other across classes?',
+    lists:[{key:'terms',label:'Names & terms'},{key:'sayings',label:'Sayings & slang'}]},
+  {key:'people',label:'People',icon:'cast',
+    prompt:'Who shapes this place, and who is shaped by it?',lists:[]},
+  {key:'places',label:'Places',icon:'pin',lists:[]},
+  {key:'tags',label:'Your tags',icon:'tag',cats:['custom'],lists:[]}
+];
+function listItems(l,fk,lk){return (l.facets[fk]&&l.facets[fk][lk])||[];}
+function locFilled(l,f){let n=0;(f.cats||[]).forEach(k=>{n+=(l.attrs[k]||[]).length;});
+  (f.lists||[]).forEach(li=>{n+=listItems(l,f.key,li.key).length;});
+  if(f.key==='places')n+=S.locations.filter(x=>x.parent===l.id).length;
+  if(f.key==='people')n+=S.characters.filter(c=>c.attrs&&c.attrs.from===l.id).length;
+  return n;}
+function facetDetail(l,f){
+  let h=f.prompt?`<div class="prompt">${esc(f.prompt)}</div>`:'';
+  (f.cats||[]).forEach(k=>{const cat=LOC_CATS.find(c=>c.key===k);if(cat)h+=catHTML(cat,S.palettes.location,l.attrs);});
+  if(f.key==='places'){const kids=S.locations.filter(x=>x.parent===l.id);
+    h+=`<div class="field"><label>Sub-places</label>${kids.map(k=>`<div class="row sub" data-act="openLoc" data-id="${k.id}"><div class="swatch" style="background:${k.color}">${ICON.pin2}</div><div><div class="rt">${esc(k.name)}</div></div><span class="chev">${ICON.chevR}</span></div>`).join('')}
+      <button class="btn" style="width:100%;margin-top:4px" data-act="addSub" data-id="${l.id}">${ICON.plus} Add a sub-place</button></div>`;}
+  if(f.key==='people'){const from=S.characters.filter(c=>c.attrs&&c.attrs.from===l.id);
+    h+=`<div class="field"><label>From here</label>${from.length?from.map(c=>`<div class="row sub" data-act="openChar" data-id="${c.id}"><div class="swatch" style="background:${c.color}">${esc(initials(c.name))}</div><div><div class="rt">${esc(c.name)}</div></div><span class="chev">${ICON.chevR}</span></div>`).join(''):`<div class="hint">Set a character's “From” to this place and they'll show up here.</div>`}</div>`;}
+  (f.lists||[]).forEach(li=>{const items=listItems(l,f.key,li.key);
+    h+=`<div class="field"><label>${esc(li.label)}</label><div class="chip-pick">
+      ${items.map((it,idx)=>`<span class="chip" style="padding-right:7px">${esc(it)}<button data-act="delItem" data-k="${f.key}" data-l="${li.key}" data-i="${idx}" style="margin-left:5px;color:var(--faint)">✕</button></span>`).join('')}
+      <button class="chip add" data-act="addItem" data-k="${f.key}" data-l="${li.key}">+ add</button></div></div>`;});
+  return h;
+}
+function charPage(){
+  const c=charById(S.ui.openCast);if(!c){go('cast');return;}
+  c.attrs=c.attrs||{};
+  const fromOpts=S.locations.map(l=>`<button class="chip ${c.attrs.from===l.id?'on':''}" data-act="setFrom" data-id="${l.id}" style="${c.attrs.from===l.id?`background:${l.color};color:#1a1626`:''}">${l.parent?'↳ ':''}${esc(l.name)}</button>`).join('')
+    +(c.attrs.from?`<button class="chip add" data-act="setFrom" data-id="">clear</button>`:'');
+  const traits=c.traits.map(t=>`<div class="trait-set">
+    <div class="trait-poles" style="margin-bottom:6px">
+      <input class="input" style="padding:7px 10px;font-family:var(--serif);font-style:italic;width:42%" value="${esc(t.poleLow)}" data-act="traitPole" data-tid="${t.id}" data-pole="low" placeholder="from…">
+      <span style="color:var(--faint);align-self:center">→</span>
+      <input class="input" style="padding:7px 10px;font-family:var(--serif);font-style:italic;width:42%;text-align:right" value="${esc(t.poleHigh)}" data-act="traitPole" data-tid="${t.id}" data-pole="high" placeholder="to…"></div>
+    <input class="input" style="margin-bottom:8px" value="${esc(t.name)}" data-act="traitName" data-tid="${t.id}" placeholder="Name this arc (e.g. Selflessness)">
+    <div class="trait-poles"><span>starts at</span><span class="val" id="start-${t.id}">${t.start}/10</span></div>
+    <div class="trait-line"><input type="range" min="1" max="10" value="${t.start}" data-act="traitStart" data-tid="${t.id}">
+      <button class="btn sm ghost danger" data-act="delTrait" data-tid="${t.id}">remove</button></div></div>`).join('');
+  const struggles=(c.struggles||[]).map(st=>`<div class="sheet-row" style="border:none;padding:8px 0">
+    <button data-act="toggleStruggle" data-sid="${st.id}" style="color:${st.done?'var(--gold)':'var(--faint)'}">${st.done?ICON.check:ICON.circle}</button>
+    <input class="input" style="border:none;background:none;padding:6px 0;flex:1;${st.done?'text-decoration:line-through;color:var(--muted)':''}" value="${esc(st.text)}" data-act="struggleText" data-sid="${st.id}" placeholder="Something she still has to face…">
+    <button data-act="delStruggle" data-sid="${st.id}" style="color:var(--faint)">${ICON.x}</button></div>`).join('');
+  const coreOpen=S.ui.coreInfo||{};
+  const coreActive=CORE_DIMS.filter(d=>d.key in (c.core||{})).map(d=>`<div class="trait-set">
+    <div class="trait-poles"><span>${d.low}</span><span>${d.high}</span></div>
+    <div class="trait-line"><input type="range" min="1" max="10" value="${c.core[d.key]}" data-act="coreVal" data-k="${d.key}">
+      <span class="val" id="core-${d.key}">${c.core[d.key]}/10</span></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+      <button class="btn sm ghost" data-act="coreInfo" data-k="${d.key}" style="padding:2px 8px">${coreOpen[d.key]?'hide':'what\u2019s this?'}</button>
+      <button class="btn sm ghost danger" data-act="coreOff" data-k="${d.key}" style="padding:2px 8px;margin-left:auto">remove</button></div>
+    ${coreOpen[d.key]?`<div class="hint" style="margin-top:7px">${esc(d.info)}</div>`:''}</div>`).join('');
+  const coreAdd=CORE_DIMS.filter(d=>!(d.key in (c.core||{}))).map(d=>`<button class="chip add" data-act="coreOn" data-k="${d.key}">${esc(d.low)} / ${esc(d.high)}</button>`).join('');
+  const wounds=(c.wounds||[]).map(w=>`<div class="wound">
+    <button class="wound-del" data-act="delWound" data-id="${w.id}">${ICON.x}</button>
+    <input class="input wound-title" value="${esc(w.title)}" data-act="woundField" data-id="${w.id}" data-f="title" placeholder="Name this wound">
+    <label>Defining event</label><input class="input" value="${esc(w.event)}" data-act="woundField" data-id="${w.id}" data-f="event" placeholder="What happened to her">
+    <label>False belief it taught</label><input class="input" value="${esc(w.belief)}" data-act="woundField" data-id="${w.id}" data-f="belief" placeholder="“No one stays.”">
+    <label>Protective behavior</label><input class="input" value="${esc(w.behavior)}" data-act="woundField" data-id="${w.id}" data-f="behavior" placeholder="Pushes people away first">
+    <label>Healing (optional)</label><input class="input" value="${esc(w.healing)}" data-act="woundField" data-id="${w.id}" data-f="healing" placeholder="Someone chooses to stay"></div>`).join('');
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goCast">${ICON.back} Cast</button>
+    <span style="margin-left:auto"></span><button class="iconbtn" data-act="delChar">${ICON.trash}</button></div>
+    <div class="view">
+      <div style="display:flex;align-items:center;gap:13px;margin-bottom:18px">
+        <button class="swatch" style="width:48px;height:48px;background:${c.color};font-size:22px" data-act="cycleColor">${esc(initials(c.name))}</button>
+        <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0" value="${esc(c.name)}" data-act="charName" placeholder="Name"></div>
+      <div class="prompt">What does she want more than anything — and what stands in her way? A character lives in the gap between the two.</div>
+      ${paletteHTML(CHAR_CATS,S.palettes.character,c.attrs)}
+      <div class="field"><label>From</label><div class="chip-pick">${fromOpts}</div></div>
+      <div class="eyebrow">Core personality — who she truly is</div>
+      <div class="prompt">Two valid ways to move through the world, not good vs bad. Set only the dimensions that matter for her — this is her true nature, mostly steady across all three books.</div>
+      ${coreActive}
+      ${coreAdd?`<div class="chip-pick" style="margin-top:4px">${coreAdd}</div>`:''}
+      <div class="eyebrow">Arcs — how she changes</div>
+      ${traits||`<p class="hint" style="margin:0 0 10px">An arc runs between two poles — selfish → selfless — and you set where she sits, scene by scene.</p>`}
+      <button class="btn" style="width:100%;margin-top:4px" data-act="addTrait">${ICON.plus} Add an arc</button>
+      <div class="eyebrow">Wounds — how she became who she is</div>
+      ${wounds?`<div class="wounds">${wounds}</div>`:'<p class="hint" style="margin:0 0 10px">A wound is an old hurt that still shapes her — the reason she sometimes acts against her own nature.</p>'}
+      <button class="btn" style="width:100%;margin-top:4px" data-act="addWound">${ICON.plus} Add a wound</button>
+      ${presenceHTML(c.id)}
+      ${connSection('character',c.id)}
+    </div>`;
+  renderNav();bind();save();
+}
+
+/* ---------------- WORLD ---------------- */
+function viewWorld(){
+  const tab=S.ui.worldTab||'places';
+  const seg=[['places','Places'],['objects','Objects'],['orgs','Groups'],['rules','Rules']]
+    .map(([k,l])=>`<button class="seg ${tab===k?'on':''}" data-act="worldTab" data-t="${k}">${l}</button>`).join('');
+  const body=tab==='objects'?worldObjects():tab==='orgs'?worldOrgs():tab==='rules'?worldRules():worldPlaces();
+  return `<div class="view"><div class="seg-row">${seg}</div>${body}</div>`;
+}
+function worldPlaces(){
+  const parents=S.locations.filter(l=>!l.parent);let rows='';
+  parents.forEach(l=>{
+    rows+=`<div class="row" data-act="openLoc" data-id="${l.id}"><div class="swatch" style="background:${l.color}">${ICON.pin2}</div>
+      <div><div class="rt">${esc(l.name)}</div><div class="rs">${txt(l.attrs?.type)?esc(txt(l.attrs.type)):'place'}${attrCount(l)?' · '+attrCount(l)+' details':''}</div></div><span class="chev">${ICON.chevR}</span></div>`;
+    S.locations.filter(k=>k.parent===l.id).forEach(k=>{
+      rows+=`<div class="row sub" data-act="openLoc" data-id="${k.id}"><div class="swatch" style="background:${k.color}">${ICON.pin2}</div>
+        <div><div class="rt">${esc(k.name)}</div><div class="rs">${txt(k.attrs?.type)?esc(txt(k.attrs.type)):'sub-place'}</div></div><span class="chev">${ICON.chevR}</span></div>`;});
+  });
+  return `<div class="eyebrow">Places</div>${rows}
+    <button class="btn gold" style="width:100%;margin-top:6px" data-act="addLoc">${ICON.plus} New place</button>`;
+}
+function worldObjects(){
+  const rows=S.objects.map(o=>`<div class="row" data-act="openObj" data-id="${o.id}"><div class="swatch" style="background:${o.color}">${ICON.gem}</div>
+    <div><div class="rt">${esc(o.name)}</div><div class="rs">${o.owner&&charById(o.owner)?'held by '+esc(charById(o.owner).name):'object'}${(o.scenes||[]).length?' · '+o.scenes.length+' scene'+(o.scenes.length>1?'s':''):''}</div></div><span class="chev">${ICON.chevR}</span></div>`).join('');
+  return `<div class="eyebrow">Objects</div>${rows||'<div class="hint" style="margin-bottom:8px">Relics, weapons, letters — the things that carry weight.</div>'}
+    <button class="btn gold" style="width:100%;margin-top:6px" data-act="addObj">${ICON.plus} New object</button>`;
+}
+function worldOrgs(){
+  const rows=S.orgs.map(o=>`<div class="row" data-act="openOrg" data-id="${o.id}"><div class="swatch" style="background:${o.color}">${ICON.group}</div>
+    <div><div class="rt">${esc(o.name)}</div><div class="rs">${o.leader&&charById(o.leader)?'led by '+esc(charById(o.leader).name):'group'}${(o.members||[]).length?' · '+o.members.length+' member'+(o.members.length>1?'s':''):''}</div></div><span class="chev">${ICON.chevR}</span></div>`).join('');
+  return `<div class="eyebrow">Groups & organizations</div>${rows||'<div class="hint" style="margin-bottom:8px">Guilds, houses, orders, armies — the powers people belong to.</div>'}
+    <button class="btn gold" style="width:100%;margin-top:6px" data-act="addOrg">${ICON.plus} New group</button>`;
+}
+function worldRules(){
+  const rows=S.rules.map(r=>`<div class="rule-card">
+    <div class="rule-top"><span class="rule-txt" data-act="editRule" data-id="${r.id}">${esc(r.text||'untitled rule')}</span><button class="conn-del" data-act="delRule" data-id="${r.id}">${ICON.x}</button></div>
+    <div class="chip-pick" style="margin-top:9px">${(r.scenes||[]).map(sid=>{const s=S.scenes.find(x=>x.id===sid);return s?`<span class="chip">${esc((s.gist||'scene').slice(0,20))}<button data-act="unlinkRuleScene" data-id="${r.id}" data-s="${sid}" style="margin-left:5px;color:var(--faint)">✕</button></span>`:'';}).join('')}<button class="chip add" data-act="linkRuleScene" data-id="${r.id}">+ scene</button></div></div>`).join('');
+  return `<div class="eyebrow">Rules of the world</div><div class="hint" style="margin-bottom:10px">Laws, limits, and costs — what magic or power can and can't do. A rule with a price feels real.</div>${rows}
+    <button class="btn gold" style="width:100%;margin-top:6px" data-act="addRule">${ICON.plus} New rule</button>`;
+}
+function objPage(){
+  const o=S.objects.find(x=>x.id===S.ui.openObj);if(!o){go('world');return;}
+  const multi=(arr,items,act)=>items.map(it=>`<button class="chip ${arr.includes(it.id)?'on':''}" data-act="${act}" data-id="${it.id}" style="${arr.includes(it.id)&&it.color?`background:${it.color};color:#1a1626`:''}">${it.color?`<span class="dot" style="background:${it.color}"></span>`:''}${esc(it.label)}</button>`).join('');
+  const chars=S.characters.map(c=>({id:c.id,label:c.name,color:c.color}));
+  const locs=S.locations.map(l=>({id:l.id,label:l.name,color:l.color}));
+  const scenes=flatScenes().map(s=>({id:s.id,label:(s.gist||'untitled').slice(0,26)}));
+  const ownerChips=chars.map(c=>`<button class="chip ${o.owner===c.id?'on':''}" data-act="objOwner" data-id="${c.id}" style="${o.owner===c.id?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')+(o.owner?`<button class="chip add" data-act="objOwner" data-id="">clear</button>`:'');
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goWorldObjects">${ICON.back} Objects</button>
+    <span style="margin-left:auto"></span><button class="iconbtn" data-act="delObj">${ICON.trash}</button></div>
+    <div class="view">
+      <div style="display:flex;align-items:center;gap:13px;margin-bottom:16px">
+        <button class="swatch" style="width:46px;height:46px;background:${o.color}" data-act="cycleObjColor">${ICON.gem}</button>
+        <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0" value="${esc(o.name)}" data-act="objName" placeholder="Object name"></div>
+      <div class="field"><label>Who holds it</label><div class="chip-pick">${ownerChips||'<span class="hint">No characters yet.</span>'}</div></div>
+      <div class="field"><label>Where it is / has been</label><div class="chip-pick">${multi(o.places,locs,'objPlace')||'<span class="hint">No places yet.</span>'}</div></div>
+      <div class="field"><label>Tied to</label><div class="chip-pick">${multi(o.chars,chars,'objChar')||'<span class="hint">No characters yet.</span>'}</div></div>
+      <div class="field"><label>Appears in</label><div class="chip-pick">${multi(o.scenes,scenes,'objScene')||'<span class="hint">No scenes yet.</span>'}</div></div>
+      <div class="field"><label>Its story</label><textarea class="gist-input" data-act="objNote" placeholder="History, meaning, what it costs to use…">${esc(o.note||'')}</textarea></div>
+    </div>`;
+  renderNav();bind();save();
+}
+function orgPage(){
+  const o=S.orgs.find(x=>x.id===S.ui.openOrg);if(!o){go('world');return;}
+  const multi=(arr,items,act)=>items.map(it=>`<button class="chip ${arr.includes(it.id)?'on':''}" data-act="${act}" data-id="${it.id}" style="${arr.includes(it.id)&&it.color?`background:${it.color};color:#1a1626`:''}">${it.color?`<span class="dot" style="background:${it.color}"></span>`:''}${esc(it.label)}</button>`).join('');
+  const chars=S.characters.map(c=>({id:c.id,label:c.name,color:c.color}));
+  const locs=S.locations.map(l=>({id:l.id,label:l.name,color:l.color}));
+  const scenes=flatScenes().map(s=>({id:s.id,label:(s.gist||'untitled').slice(0,26)}));
+  const others=S.orgs.filter(x=>x.id!==o.id).map(x=>({id:x.id,label:x.name,color:x.color}));
+  const single=(cur,items,act,ph)=>items.map(c=>`<button class="chip ${cur===c.id?'on':''}" data-act="${act}" data-id="${c.id}" style="${cur===c.id?`background:${c.color||'var(--gold)'};color:#1a1626`:''}">${c.color?`<span class="dot" style="background:${c.color}"></span>`:''}${esc(c.label)}</button>`).join('')+(cur?`<button class="chip add" data-act="${act}" data-id="">clear</button>`:'')||`<span class="hint">${ph}</span>`;
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goWorldOrgs">${ICON.back} Groups</button>
+    <span style="margin-left:auto"></span><button class="iconbtn" data-act="delOrg">${ICON.trash}</button></div>
+    <div class="view">
+      <div style="display:flex;align-items:center;gap:13px;margin-bottom:16px">
+        <button class="swatch" style="width:46px;height:46px;background:${o.color}" data-act="cycleOrgColor">${ICON.group}</button>
+        <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0" value="${esc(o.name)}" data-act="orgName" placeholder="Group name"></div>
+      <div class="field"><label>Led by</label><div class="chip-pick">${single(o.leader,chars,'orgLeader','No characters yet.')}</div></div>
+      <div class="field"><label>Members</label><div class="chip-pick">${multi(o.members,chars,'orgMember')||'<span class="hint">No characters yet.</span>'}</div></div>
+      <div class="field"><label>Based at</label><div class="chip-pick">${single(o.hq,locs,'orgHq','No places yet.')}</div></div>
+      <div class="field"><label>Allies</label><div class="chip-pick">${multi(o.allies,others,'orgAlly')||'<span class="hint">No other groups yet.</span>'}</div></div>
+      <div class="field"><label>Enemies</label><div class="chip-pick">${multi(o.enemies,others,'orgEnemy')||'<span class="hint">No other groups yet.</span>'}</div></div>
+      <div class="field"><label>Appears in</label><div class="chip-pick">${multi(o.scenes,scenes,'orgScene')||'<span class="hint">No scenes yet.</span>'}</div></div>
+      <div class="field"><label>What they want</label><textarea class="gist-input" data-act="orgGoal" placeholder="Their goal, their grievance, their price…">${esc(o.goal||'')}</textarea></div>
+    </div>`;
+  renderNav();bind();save();
+}
+function timelineHTML(l){
+  const evs=l.timeline||[];
+  return `<div class="eyebrow">Timeline</div>
+    ${evs.map(e=>`<div class="tl-ev"><div class="tl-when">${esc(e.when||'—')}</div><div class="tl-what">${esc(e.text)}</div><button class="conn-del" data-act="delLocEv" data-id="${e.id}">${ICON.x}</button></div>`).join('')||'<div class="hint" style="margin-bottom:8px">Its founding, its wars, the day your story arrives.</div>'}
+    <button class="btn sm" data-act="addLocEv">${ICON.plus} Add event</button>`;
+}
+function attrCount(l){return Object.values(l.attrs||{}).filter(v=>v&&(Array.isArray(v)?v.length:true)).length;}
+function locPage(){
+  const l=locById(S.ui.openLoc);if(!l){go('world');return;}l.attrs=l.attrs||{};l.facets=l.facets||{};
+  const facet=S.ui.facet&&FACETS.find(f=>f.key===S.ui.facet);
+  let body;
+  if(facet){
+    body=`<button class="backbtn" data-act="closeFacet" style="margin-bottom:14px">${ICON.back} all of ${esc(l.name)}</button>
+      <div class="facet-h">${ICON[facet.icon]||''}<span>${esc(facet.label)}</span></div>${facetDetail(l,facet)}`;
+  } else {
+    const parentLabel=l.parent?`<div class="hint" style="margin-bottom:14px">inside ${esc(locById(l.parent)?.name||'')}</div>`:'';
+    const tiles=FACETS.map(f=>{const n=locFilled(l,f);
+      return `<button class="ftile ${n?'on':''}" data-act="openFacet" data-k="${f.key}">
+        <span class="fic">${ICON[f.icon]||ICON.world}</span><span class="flab">${esc(f.label)}</span>
+        <span class="fcount ${n?'':'empty'}">${n||'—'}</span></button>`;}).join('');
+    body=`${parentLabel}<div class="ftiles">${tiles}</div>${timelineHTML(l)}${connSection('location',l.id)}${usageHTML(l.id)}`;
+  }
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="${l.parent?'openParent':'goWorld'}" data-id="${l.parent||''}">${ICON.back} ${l.parent?'Place':'World'}</button>
+    <span style="margin-left:auto"></span><button class="iconbtn" data-act="delLoc">${ICON.trash}</button></div>
+    <div class="view">
+      <div style="display:flex;align-items:center;gap:13px;margin-bottom:16px">
+        <button class="swatch" style="width:46px;height:46px;background:${l.color}" data-act="cycleLocColor">${ICON.pin2}</button>
+        <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0" value="${esc(l.name)}" data-act="locName" placeholder="Place name"></div>
+      ${body}
+    </div>`;
+  renderNav();bind();save();
+}
+
+/* ---------------- CONNECTIONS / BRANCHES ---------------- */
+const entOf=(k,id)=>k==='character'?charById(id):locById(id);
+const entName=(k,id)=>{const e=entOf(k,id);return e?e.name:'(removed)';};
+const entColor=(k,id)=>{const e=entOf(k,id);return e?e.color:'#666';};
+function connsOf(k,id){return S.connections.filter(c=>(c.a.kind===k&&c.a.id===id)||(c.b.kind===k&&c.b.id===id))
+  .map(c=>{const mine=c.a.kind===k&&c.a.id===id;return {id:c.id,label:c.label,other:mine?c.b:c.a};});}
+function connPresets(a,b){
+  if(a==='character'&&b==='character')return['ally','friend','enemy','rival','family','mentor','lover','enemies to lovers','betrayed by'];
+  if(a==='location'&&b==='location')return['road to','borders','part of','at war with','allied with','trades with'];
+  if(a==='character')return['from','rules','exiled from','hides in','protects','seeks'];
+  return['home of','ruled by','guarded by','haunted by','contested by'];
+}
+function connSection(k,id){
+  const list=connsOf(k,id);
+  return `<div class="eyebrow">Connections</div>
+    ${list.map(c=>`<div class="conn-row"><span class="conn-lbl">${esc(c.label)}</span>
+      <button class="conn-to" data-act="openEnt" data-k="${c.other.kind}" data-id="${c.other.id}"><span class="dot" style="background:${entColor(c.other.kind,c.other.id)}"></span>${esc(entName(c.other.kind,c.other.id))}</button>
+      <button class="conn-del" data-act="delConn" data-id="${c.id}">${ICON.x}</button></div>`).join('')||'<div class="hint" style="margin-bottom:8px">Nothing linked yet.</div>'}
+    <div style="display:flex;gap:8px"><button class="btn sm" data-act="startConnect" data-k="${k}" data-id="${id}">${ICON.branch} Connect</button>
+    ${list.length?`<button class="btn sm ghost" data-act="webFocus" data-k="${k}" data-id="${id}">See branches</button>`:''}</div>`;
+}
+function renderConnSheet(){
+  const c=S.ui.conn;if(!c)return;
+  if(!c.to){
+    const chars=S.characters.filter(x=>!(c.from.kind==='character'&&c.from.id===x.id)).map(x=>`<button class="chip" data-act="connTo" data-k="character" data-id="${x.id}"><span class="dot" style="background:${x.color}"></span>${esc(x.name)}</button>`).join('');
+    const locs=S.locations.filter(x=>!(c.from.kind==='location'&&c.from.id===x.id)).map(x=>`<button class="chip" data-act="connTo" data-k="location" data-id="${x.id}">${x.parent?'↳ ':''}<span class="dot" style="background:${x.color}"></span>${esc(x.name)}</button>`).join('');
+    openSheet(`<h3>Link from ${esc(entName(c.from.kind,c.from.id))}</h3>
+      ${chars?`<div class="slip-lbl">People</div><div class="chip-pick" style="margin-bottom:14px">${chars}</div>`:''}
+      ${locs?`<div class="slip-lbl">Places</div><div class="chip-pick">${locs}</div>`:''}`);
+  } else {
+    const p=connPresets(c.from.kind,c.to.kind);
+    openSheet(`<h3>${esc(entName(c.from.kind,c.from.id))} … ${esc(entName(c.to.kind,c.to.id))}</h3>
+      <div class="slip-lbl">How are they linked?</div><div class="chip-pick">
+      ${p.map(x=>`<button class="chip" data-act="connLabel" data-v="${esc(x)}">${esc(x)}</button>`).join('')}
+      <button class="chip add" data-act="connLabelCustom">+ custom</button></div>`);
+  }
+}
+function makeConn(label){if(!S.ui.conn||!S.ui.conn.to)return;S.connections.push({id:uid(),a:S.ui.conn.from,b:S.ui.conn.to,label});S.ui.conn=null;closeSheet();render();}
+function webView(){
+  const wf=S.ui.webFocus;
+  if(!wf||!entOf(wf.kind,wf.id))return `<div class="view"><div class="empty"><p>Nothing to show.</p></div></div>`;
+  const list=connsOf(wf.kind,wf.id);
+  let h=`<div class="view">
+    <button class="web-focus" data-act="openEnt" data-k="${wf.kind}" data-id="${wf.id}">
+      <span class="swatch" style="width:44px;height:44px;background:${entColor(wf.kind,wf.id)}">${wf.kind==='character'?esc(initials(entName(wf.kind,wf.id))):ICON.pin2}</span>
+      <span class="web-name">${esc(entName(wf.kind,wf.id))}</span></button>
+    <div class="web-branches">`;
+  if(!list.length)h+=`<div class="hint">No links from here yet.</div>`;
+  list.forEach(c=>{h+=`<div class="branch"><span class="branch-lbl">${esc(c.label)}</span>
+    <button class="branch-node" data-act="webFocus" data-k="${c.other.kind}" data-id="${c.other.id}"><span class="dot" style="background:${entColor(c.other.kind,c.other.id)}"></span>${esc(entName(c.other.kind,c.other.id))}</button>
+    <button class="btn sm ghost" data-act="openEnt" data-k="${c.other.kind}" data-id="${c.other.id}">open</button></div>`;});
+  h+=`</div></div>`;return h;
+}
+
+/* ---------------- AUTO INSIGHTS (computed from scenes) ---------------- */
+function charPresence(cid){
+  const flat=flatScenes(),idxs=[];
+  flat.forEach((s,i)=>{if((s.characters||[]).includes(cid))idxs.push(i);});
+  if(!idxs.length)return {count:0};
+  const scenes=idxs.map(i=>flat[i]);
+  const books=[...new Set(scenes.map(s=>s.book))];
+  const ms=[...new Set(scenes.map(s=>s.milestone).filter(Boolean))];
+  const locs=[...new Set(scenes.map(s=>s.location).filter(Boolean))];
+  const comp={};scenes.forEach(s=>(s.characters||[]).forEach(o=>{if(o!==cid)comp[o]=(comp[o]||0)+1;}));
+  let topComp=null,topN=0;Object.keys(comp).forEach(o=>{if(comp[o]>topN){topN=comp[o];topComp=o;}});
+  let gap=0;for(let k=1;k<idxs.length;k++)gap=Math.max(gap,idxs[k]-idxs[k-1]-1);
+  return {count:scenes.length,first:scenes[0],last:scenes[scenes.length-1],books,ms:ms.length,locs:locs.length,companions:Object.keys(comp).length,topComp,topN,longestGap:gap};
+}
+function statRow(l,v){return `<div class="stat"><span class="sl">${l}</span><span class="sv">${v}</span></div>`;}
+function sceneLbl(s){const b=bookById(s.book);return `${b?esc(b.name):''} · “${esc((s.gist||'untitled').slice(0,30))}”`;}
+function presenceHTML(cid){
+  const p=charPresence(cid);
+  if(!p.count)return `<div class="eyebrow">Story presence</div><div class="hint" style="margin-bottom:8px">Not in any scenes yet — this fills itself as you write.</div>`;
+  let h=`<div class="eyebrow">Story presence</div><div class="stats">`;
+  h+=statRow('Scenes',p.count)+statRow('First',sceneLbl(p.first))+statRow('Latest',sceneLbl(p.last));
+  h+=statRow('Books',p.books.map(b=>esc(bookById(b)?.name||'')).join(', ')||'—');
+  h+=statRow('Milestones',p.ms)+statRow('Locations',p.locs)+statRow('Interacts with',p.companions);
+  if(p.topComp)h+=statRow('Most often with',esc(charById(p.topComp)?.name||'')+' · '+p.topN);
+  if(p.longestGap)h+=statRow('Longest absence',p.longestGap+' scene'+(p.longestGap>1?'s':''));
+  return h+`</div>`;
+}
+function locUsage(lid){
+  const flat=flatScenes(),scenes=flat.filter(s=>s.location===lid);
+  return {count:scenes.length,books:[...new Set(scenes.map(s=>s.book))],from:S.characters.filter(c=>c.attrs&&c.attrs.from===lid),first:scenes[0]};
+}
+function usageHTML(lid){
+  const u=locUsage(lid);if(!u.count&&!u.from.length)return '';
+  let h=`<div class="eyebrow">Story usage</div><div class="stats">`;
+  h+=statRow('Scenes set here',u.count);
+  h+=statRow('Books',u.books.map(b=>esc(bookById(b)?.name||'')).join(', ')||'—');
+  h+=statRow('People from here',u.from.length);
+  return h+`</div>`;
+}
+function heatView(){
+  const flat=flatScenes();
+  if(!S.characters.length||!flat.length)return `<div class="view"><div class="empty"><div class="mk">Nothing to map yet.</div><p>Add characters and drop them into scenes, and their appearances light up here.</p></div></div>`;
+  const sep=flat.map((s,i)=>i>0&&flat[i-1].book!==s.book);
+  let head=`<div class="heat-row heat-head"><div class="heat-name"></div>`;
+  flat.forEach((s,i)=>{head+=`<div class="heat-cell heat-tick ${sep[i]?'sep':''}"></div>`;});
+  head+=`</div>`;
+  let rows='';
+  S.characters.forEach(c=>{let r=`<div class="heat-row"><div class="heat-name"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</div>`;
+    flat.forEach((s,i)=>{const on=(s.characters||[]).includes(c.id);
+      r+=`<div class="heat-cell ${on?'on':''} ${sep[i]?'sep':''}" style="${on?`background:${c.color}`:''}" data-act="openScene" data-id="${s.id}"></div>`;});
+    rows+=r+`</div>`;});
+  return `<div class="view"><div class="hint" style="margin:4px 0 12px">Rows are characters, columns are scenes in reading order. Gaps show absences; tap a cell to open the scene.</div>
+    <div class="heat-scroll"><div class="heat">${head}${rows}</div></div></div>`;
+}
+
+/* ---------------- RELATIONSHIPS (first-class) ---------------- */
+function relData(a,b){const k=pairKey(a,b);const r=S.bonds[k]=S.bonds[k]||{points:{}};
+  r.points=r.points||{};r.dims=r.dims||{};r.memories=r.memories||[];r.secrets=r.secrets||{};if(typeof r.influence!=='string')r.influence='';return r;}
+function allRelPairs(){
+  const set={};
+  Object.keys(S.bonds).forEach(k=>{const p=k.split('|');if(p.length===2&&charById(p[0])&&charById(p[1]))set[k]=[p[0],p[1]];});
+  S.connections.forEach(c=>{if(c.a.kind==='character'&&c.b.kind==='character'&&charById(c.a.id)&&charById(c.b.id))set[pairKey(c.a.id,c.b.id)]=[c.a.id,c.b.id];});
+  flatScenes().forEach(s=>{const cs=(s.characters||[]).filter(charById);for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++)set[pairKey(cs[i],cs[j])]=[cs[i],cs[j]];});
+  return Object.values(set).map(ids=>({a:ids[0],b:ids[1]}));
+}
+function relStats(a,b){
+  const flat=flatScenes(),shared=flat.filter(s=>(s.characters||[]).includes(a)&&(s.characters||[]).includes(b)),track=bondTrack(a,b);
+  let cur=null;track.forEach(p=>{if(p.stage!=null)cur=p.stage;});
+  let prev=null;const changes=[];flat.forEach((s,i)=>{const st=track[i].stage;if(st!=null&&st!==prev)changes.push({scene:s,stage:st});prev=st;});
+  return {shared,cur,changes,books:[...new Set(shared.map(s=>s.book))],first:shared[0],last:changes[changes.length-1]};
+}
+function relsView(){
+  const pairs=allRelPairs();
+  if(!pairs.length)return `<div class="view"><div class="empty"><div class="mk">No relationships yet.</div><p>Put two characters in the same scene, or connect them, and their relationship shows up here.</p></div></div>`;
+  const rows=pairs.map(p=>{const st=relStats(p.a,p.b),ca=charById(p.a),cb=charById(p.b);
+    return `<div class="row" data-act="openRel" data-a="${p.a}" data-b="${p.b}">
+      <div class="rel-av"><span class="av2" style="background:${ca.color}">${esc(initials(ca.name))}</span><span class="av2" style="background:${cb.color}">${esc(initials(cb.name))}</span></div>
+      <div><div class="rt">${esc(ca.name)} & ${esc(cb.name)}</div><div class="rs">${st.cur?esc(st.cur):'—'} · ${st.shared.length} shared scene${st.shared.length!==1?'s':''}</div></div>
+      <span class="chev">${ICON.chevR}</span></div>`;}).join('');
+  return `<div class="view"><div class="eyebrow">Relationships</div>${rows}</div>`;
+}
+function relPage(){
+  const a=S.ui.openRel&&S.ui.openRel[0],b=S.ui.openRel&&S.ui.openRel[1],ca=charById(a),cb=charById(b);
+  if(!ca||!cb){go('rels');return;}
+  const r=relData(a,b),st=relStats(a,b);
+  const sceneLbl2=s=>{const bk=bookById(s.book);return `${bk?esc(bk.name):''} · “${esc((s.gist||'untitled').slice(0,28))}”`;};
+  let overview=`<div class="stats">`;
+  overview+=statRow('Now',st.cur?esc(st.cur):'—');
+  if(st.first)overview+=statRow('First together',sceneLbl2(st.first));
+  if(st.last)overview+=statRow('Last change',sceneLbl2(st.last.scene)+' → '+esc(st.last.stage));
+  overview+=statRow('Shared scenes',st.shared.length);
+  overview+=statRow('Books',st.books.map(x=>esc(bookById(x)?.name||'')).join(', ')||'—');
+  overview+=`</div>`;
+  const timeline=st.changes.length?`<div class="wounds" style="margin-left:7px">${st.changes.map(c=>`<div class="rel-ev2"><div class="rel-when">${sceneLbl2(c.scene)}</div><div class="rel-stage">${esc(c.stage)}</div></div>`).join('')}</div>`:'<div class="hint">Mark how they stand in a scene (in the scene editor) and the arc builds here automatically.</div>';
+  const dims=REL_DIMS.map(d=>{const v=typeof r.dims[d.key]==='number'?r.dims[d.key]:5;const low=d.low==='__A__'?esc(ca.name):d.low,high=d.high==='__B__'?esc(cb.name):d.high;
+    return `<div class="trait-set"><div class="trait-poles"><span>${low}</span><span>${high}</span></div>
+      <div class="trait-line"><input type="range" min="1" max="10" value="${v}" data-act="relDim" data-k="${d.key}"><span class="val" id="rd-${d.key}">${v}/10</span></div>
+      <div class="hint" style="margin-top:3px">${d.label}</div></div>`;}).join('');
+  const mems=(r.memories||[]).map(m=>`<div class="conn-row"><span class="conn-lbl">${esc(m.text)}</span><button class="conn-del" data-act="delMemory" data-id="${m.id}">${ICON.x}</button></div>`).join('');
+  const secretsFor=id=>{r.secrets[id]=r.secrets[id]||[];const list=r.secrets[id];
+    return `<div class="field"><label>${esc(charById(id).name)} knows</label><div class="chip-pick">
+      ${list.map((sx,i)=>`<span class="chip" style="padding-right:7px">${esc(sx)}<button data-act="delSecret" data-id="${id}" data-i="${i}" style="margin-left:5px;color:var(--faint)">✕</button></span>`).join('')}
+      <button class="chip add" data-act="addSecret" data-id="${id}">+ secret</button></div></div>`;};
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goRels">${ICON.back} Relationships</button></div>
+    <div class="view">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div class="rel-av"><span class="av2" style="width:38px;height:38px;font-size:14px;background:${ca.color}">${esc(initials(ca.name))}</span><span class="av2" style="width:38px;height:38px;font-size:14px;background:${cb.color}">${esc(initials(cb.name))}</span></div>
+        <div style="font-family:var(--serif);font-size:23px;font-weight:600">${esc(ca.name)} & ${esc(cb.name)}</div></div>
+      <div class="eyebrow">Overview</div>${overview}
+      <div class="eyebrow">How it changed</div>${timeline}
+      <div class="eyebrow">Where they stand</div>${dims}
+      <div class="eyebrow">Shared memories</div>${mems}
+      <button class="btn sm" style="margin-top:4px" data-act="addMemory">${ICON.plus} Add a memory</button>
+      <div class="eyebrow">Secrets — who knows what</div>${secretsFor(a)}${secretsFor(b)}
+      <div class="eyebrow">Influence</div>
+      <input class="input" value="${esc(r.influence||'')}" data-act="relInfluence" placeholder="How has one changed the other?">
+    </div>`;
+  renderNav();bind();save();
+}
+
+/* ---------------- NAV ---------------- */
+function renderNav(){
+  const v=S.ui.view;
+  const map=[['spine','Spine',ICON.spineN],['capture','Catch',ICON.featherN],['cast','Cast',ICON.cast],['world','World',ICON.world]];
+  const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'?'spine':(v==='heat'||v==='rels'||v==='relOne'?'cast':v))));
+  document.getElementById('nav').innerHTML=`<div class="nav-inner">${map.map(([k,lab,ic])=>`<button data-act="nav" data-v="${k}" class="${active===k?'on':''}">${ic}${k==='capture'&&S.slips.length?`<span class="badge">${S.slips.length}</span>`:''}<span>${lab}</span></button>`).join('')}</div>`;
+}
+
+/* ---------------- SHEET ---------------- */
+function openSheet(h){document.getElementById('sheet').innerHTML='<div class="grabber"></div>'+h;document.getElementById('scrim').classList.add('show');}
+function closeSheet(){document.getElementById('scrim').classList.remove('show');askCB=null;cloudOpen=false;}
+let askCB=null;
+function askText(title,initial,cb,ph){askCB=cb;
+  openSheet(`<h3>${esc(title)}</h3><input class="input" id="askInput" value="${esc(initial||'')}" placeholder="${esc(ph||'')}" autocomplete="off" autocapitalize="sentences">
+    <div style="display:flex;gap:9px;margin-top:14px"><button class="btn ghost" data-act="askCancel" style="flex:1">Cancel</button>
+    <button class="btn gold" data-act="askOK" style="flex:1">Save</button></div>`);
+  setTimeout(()=>{const i=document.getElementById('askInput');if(i){i.focus();i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();doAsk();}};}},60);}
+function doAsk(){const i=document.getElementById('askInput');const v=i?i.value.trim():'';const cb=askCB;askCB=null;closeSheet();if(cb&&v)cb(v);}
+function pickOne(title,items,cb){askCB=cb;
+  openSheet(`<h3>${esc(title)}</h3><div class="pick-list">${items.length?items.map(it=>`<div class="sheet-row" data-act="pickPick" data-id="${it.id}"><div><div>${esc(it.label)}</div>${it.sub?`<div class="s">${esc(it.sub)}</div>`:''}</div></div>`).join(''):'<div class="hint">Nothing to choose yet.</div>'}</div>
+    <button class="btn ghost" data-act="askCancel" style="width:100%;margin-top:12px">Cancel</button>`);}
+function moveSheet(id){const s=S.scenes.find(x=>x.id===id);if(!s)return;S.ui.mv={scene:id,book:s.book};renderMoveSheet();}
+function renderMoveSheet(){const mv=S.ui.mv,s=S.scenes.find(x=>x.id===mv.scene);if(!s)return;
+  const L='style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600"';
+  const books=S.books.map(b=>`<button class="chip ${mv.book===b.id?'on':''}" data-act="mvBook" data-b="${b.id}">${esc(b.name)}</button>`).join('');
+  const ms=milestonesOf(mv.book).map(m=>`<button class="chip ${s.book===mv.book&&s.milestone===m.id?'on':''}" data-act="mvDo" data-ms="${m.id}">${ICON.flag} ${esc(m.name)}</button>`).join('')
+    +`<button class="chip ${s.book===mv.book&&!s.milestone?'on':''}" data-act="mvDo" data-ms="">loose in book</button>`;
+  openSheet(`<h3>Move scene</h3><div class="hint" style="margin:-4px 0 14px;font-style:italic">“${esc((s.gist||'untitled').slice(0,48))}”</div>
+    <div ${L}>Book</div><div class="chip-pick" style="margin:8px 0 16px">${books}</div>
+    <div ${L}>Into which milestone</div><div class="chip-pick" style="margin-top:8px">${ms}</div>`);}
+function settingsSheet(){openSheet(`<h3>The Spine</h3>
+  <div class="sheet-row" data-act="exportData">${ICON.down2}<div><div>Export everything</div><div class="s">Download a backup you can keep or move</div></div></div>
+  <div class="sheet-row" data-act="importData">${ICON.up2}<div><div>Import a backup</div><div class="s">Replace what's here with a file</div></div></div>
+  <div class="sheet-row" data-act="openCloud">${ICON.branch}<div><div>Cloud backup${Cloud.cfg()?(FB.user?' · on':' · set up'):' · off'}</div><div class="s">${Cloud.cfg()?(FB.user?'Signed in — back up or restore':'Sign in to back up'):'Optional — sync across devices with Firebase'}</div></div></div>
+  <div class="sheet-row">${ICON.phone}<div><div>Keep it on your phone</div><div class="s">Share → Add to Home Screen</div></div></div>
+  <div class="sheet-row" style="color:var(--faint)">${ICON.info}<div><div>${S.scenes.length} scenes · ${S.characters.length} characters</div><div class="s">Saved on this device. Export now and then.</div></div></div>`);}
+
+/* ---------------- EVENTS ---------------- */
+function bind(){root.onclick=handleClick;document.getElementById('nav').onclick=handleClick;root.oninput=handleInput;}
+document.getElementById('scrim').onclick=e=>{if(e.target.id==='scrim')closeSheet();};
+document.getElementById('sheet').onclick=handleClick;
+const A=e=>e.target.closest('[data-act]');
+function curScene(){return S.scenes.find(x=>x.id===S.ui.editScene);}
+function findTrait(t){return charById(S.ui.openCast)?.traits.find(x=>x.id===t);}
+function findStruggle(s){return charById(S.ui.openCast)?.struggles.find(x=>x.id===s);}
+
+function handleClick(e){
+  const el=A(e);if(!el)return;const a=el.dataset.act,id=el.dataset.id;
+  const stop=()=>{e.preventDefault();e.stopPropagation();};
+  switch(a){
+    case 'nav':closeSheet();go(el.dataset.v);break;
+    case 'settings':settingsSheet();break;
+    case 'askOK':doAsk();break;
+    case 'askCancel':closeSheet();break;
+    case 'mvBook':S.ui.mv.book=el.dataset.b;renderMoveSheet();break;
+    case 'mvDo':{const s=S.scenes.find(x=>x.id===S.ui.mv.scene);if(s){s.book=S.ui.mv.book;s.milestone=el.dataset.ms||null;}closeSheet();render();break;}
+    case 'slipBook':{const sl=S.slips.find(x=>x.id===id);if(sl)sl.book=el.dataset.b;render();break;}
+    case 'slipChar':{const sl=S.slips.find(x=>x.id===id);if(sl){sl.characters=sl.characters||[];const ci=el.dataset.c,k=sl.characters.indexOf(ci);k>=0?sl.characters.splice(k,1):sl.characters.push(ci);}render();break;}
+    case 'slipNewChar':{const sid=id;askText('New character','',n=>{const c=newChar(n);const sl=S.slips.find(x=>x.id===sid);if(sl){sl.characters=sl.characters||[];sl.characters.push(c.id);}render();});break;}
+    case 'goCapture':go('capture');break;
+    case 'openCompare':if(!S.ui.cmpA)S.ui.cmpA=S.ui.focusChar||null;go('compare');break;
+    /* spine */
+    case 'addMs':{const book=el.dataset.book;askText('New milestone','',n=>{const m={id:uid(),book,name:n};S.milestones.push(m);S.ui.open[m.id]=true;render();},'What these scenes build toward');break;}
+    case 'toggleMs':S.ui.open[id]=!S.ui.open[id];render();break;
+    case 'renameMs':{stop();const m=S.milestones.find(x=>x.id===id);askText('Rename milestone',m.name,n=>{m.name=n;render();});break;}
+    case 'msUp':stop();moveMs(id,-1);break;
+    case 'msDown':stop();moveMs(id,1);break;
+    case 'delMs':{stop();const m=S.milestones.find(x=>x.id===id);if(confirm(`Delete "${m.name}"? Its scenes become loose.`)){S.scenes.forEach(s=>{if(s.milestone===id)s.milestone=null;});S.milestones=S.milestones.filter(x=>x.id!==id);render();}break;}
+    case 'addScene':{const sc={id:uid(),gist:'',book:el.dataset.book,milestone:el.dataset.ms,characters:[],location:null,arc:{},t:Date.now()};S.scenes.push(sc);S.ui.editScene=sc.id;go('scene');break;}
+    case 'openScene':S.ui.editScene=id;go('scene');break;
+    case 'scUp':stop();moveScene(id,-1);break;
+    case 'scDown':stop();moveScene(id,1);break;
+    /* capture */
+    case 'saveSlip':saveSlip();break;
+    case 'fileSlip':stop();fileSlip(id);break;
+    case 'delSlip':stop();S.slips=S.slips.filter(x=>x.id!==id);render();break;
+    /* scene editor */
+    case 'closeScene':go('spine');break;
+    case 'delScene':if(confirm('Delete this scene?')){S.scenes=S.scenes.filter(x=>x.id!==S.ui.editScene);go('spine');}break;
+    case 'setBook':{const s=curScene();s.book=id;if(s.milestone&&!milestonesOf(id).some(m=>m.id===s.milestone))s.milestone=null;sceneEditor();break;}
+    case 'setMs':{curScene().milestone=id||null;sceneEditor();break;}
+    case 'newMsHere':{const book=el.dataset.book;askText('New milestone','',n=>{const m={id:uid(),book,name:n};S.milestones.push(m);curScene().milestone=m.id;sceneEditor();},'What these scenes build toward');break;}
+    case 'togglePresent':togglePresent(id);break;
+    case 'setLoc':{curScene().location=id||null;sceneEditor();break;}
+    case 'clearTrait':{const s=curScene();if(s.arc&&s.arc[el.dataset.cid])delete s.arc[el.dataset.cid][el.dataset.tid];sceneEditor();break;}
+    case 'quickChar':{askText('New character','',n=>{const c=newChar(n);curScene().characters.push(c.id);sceneEditor();});break;}
+    case 'setBond':setBondStage(el.dataset.a,el.dataset.b,curScene().id,el.dataset.st);sceneEditor();break;
+    case 'bondCustom':{const a=el.dataset.a,b=el.dataset.b,sid=curScene().id;askText('How do they stand here?','',v=>{setBondStage(a,b,sid,v);sceneEditor();},'e.g. uneasy truce');break;}
+    case 'clearCur':{const s=curScene();if(s.current&&s.current[el.dataset.cid])delete s.current[el.dataset.cid][el.dataset.k];sceneEditor();break;}
+    case 'toggleThread':{const s=curScene();s.threads=s.threads||[];const i=s.threads.indexOf(el.dataset.id);i>=0?s.threads.splice(i,1):s.threads.push(el.dataset.id);sceneEditor();break;}
+    case 'newThread':askText('New thread','',n=>{const t={id:uid(),name:n,color:PAL[S.threads.length%PAL.length]};S.threads.push(t);const s=curScene();s.threads=s.threads||[];s.threads.push(t.id);sceneEditor();},'e.g. Romance, Revenge');break;
+    case 'toggleTheme':{const s=curScene();s.themes=s.themes||[];const i=s.themes.indexOf(el.dataset.id);i>=0?s.themes.splice(i,1):s.themes.push(el.dataset.id);sceneEditor();break;}
+    case 'newTheme':askText('New theme','',n=>{const t={id:uid(),name:n};S.themes.push(t);const s=curScene();s.themes=s.themes||[];s.themes.push(t.id);sceneEditor();},'e.g. Belonging, Sacrifice');break;
+    case 'togglePurpose':{const s=curScene();s.purpose=s.purpose||[];const v=el.dataset.v,i=s.purpose.indexOf(v);i>=0?s.purpose.splice(i,1):s.purpose.push(v);sceneEditor();break;}
+    case 'purposeCustom':askText('Add a purpose','',v=>{const s=curScene();s.purpose=s.purpose||[];if(!s.purpose.includes(v))s.purpose.push(v);sceneEditor();});break;
+    case 'filterSet':S.ui.filter={kind:el.dataset.kind,id:el.dataset.id};render();break;
+    case 'filterClear':S.ui.filter=null;render();break;
+    case 'goBalance':go('balance');break;
+    /* cast */
+    case 'addChar':{const c=newChar('New character');S.ui.openCast=c.id;go('castOne');break;}
+    case 'openChar':S.ui.openCast=id;go('castOne');break;
+    case 'goCast':go('cast');break;
+    case 'goHeat':go('heat');break;
+    case 'goRels':go('rels');break;
+    case 'worldTab':S.ui.worldTab=el.dataset.t;render();break;
+    case 'pickPick':{const cb=askCB;askCB=null;closeSheet();if(cb)cb(el.dataset.id);break;}
+    case 'goWorldObjects':S.ui.worldTab='objects';go('world');break;
+    case 'goWorldOrgs':S.ui.worldTab='orgs';go('world');break;
+    case 'addObj':{const o={id:uid(),name:'New object',color:PAL[S.objects.length%PAL.length],note:'',owner:null,places:[],chars:[],scenes:[]};S.objects.push(o);S.ui.openObj=o.id;go('objOne');break;}
+    case 'openObj':S.ui.openObj=el.dataset.id;go('objOne');break;
+    case 'delObj':S.objects=S.objects.filter(o=>o.id!==S.ui.openObj);S.ui.worldTab='objects';go('world');break;
+    case 'cycleObjColor':{const o=S.objects.find(x=>x.id===S.ui.openObj);o.color=PAL[(PAL.indexOf(o.color)+1)%PAL.length];objPage();break;}
+    case 'objOwner':{const o=S.objects.find(x=>x.id===S.ui.openObj);o.owner=el.dataset.id||null;objPage();break;}
+    case 'objPlace':{const o=S.objects.find(x=>x.id===S.ui.openObj);togID(o.places,el.dataset.id);objPage();break;}
+    case 'objChar':{const o=S.objects.find(x=>x.id===S.ui.openObj);togID(o.chars,el.dataset.id);objPage();break;}
+    case 'objScene':{const o=S.objects.find(x=>x.id===S.ui.openObj);togID(o.scenes,el.dataset.id);objPage();break;}
+    case 'addOrg':{const o={id:uid(),name:'New group',color:PAL[S.orgs.length%PAL.length],goal:'',leader:null,members:[],hq:null,allies:[],enemies:[],scenes:[]};S.orgs.push(o);S.ui.openOrg=o.id;go('orgOne');break;}
+    case 'openOrg':S.ui.openOrg=el.dataset.id;go('orgOne');break;
+    case 'delOrg':S.orgs=S.orgs.filter(o=>o.id!==S.ui.openOrg);S.ui.worldTab='orgs';go('world');break;
+    case 'cycleOrgColor':{const o=S.orgs.find(x=>x.id===S.ui.openOrg);o.color=PAL[(PAL.indexOf(o.color)+1)%PAL.length];orgPage();break;}
+    case 'orgLeader':{const o=S.orgs.find(x=>x.id===S.ui.openOrg);o.leader=el.dataset.id||null;orgPage();break;}
+    case 'orgHq':{const o=S.orgs.find(x=>x.id===S.ui.openOrg);o.hq=el.dataset.id||null;orgPage();break;}
+    case 'orgMember':{const o=S.orgs.find(x=>x.id===S.ui.openOrg);togID(o.members,el.dataset.id);orgPage();break;}
+    case 'orgAlly':{const o=S.orgs.find(x=>x.id===S.ui.openOrg);togID(o.allies,el.dataset.id);orgPage();break;}
+    case 'orgEnemy':{const o=S.orgs.find(x=>x.id===S.ui.openOrg);togID(o.enemies,el.dataset.id);orgPage();break;}
+    case 'orgScene':{const o=S.orgs.find(x=>x.id===S.ui.openOrg);togID(o.scenes,el.dataset.id);orgPage();break;}
+    case 'addRule':askText('New rule','',v=>{S.rules.push({id:uid(),text:v,scenes:[]});render();},'e.g. Magic costs memory');break;
+    case 'editRule':{const r=S.rules.find(x=>x.id===el.dataset.id);askText('Rule',r.text,v=>{r.text=v;render();});break;}
+    case 'delRule':S.rules=S.rules.filter(r=>r.id!==el.dataset.id);render();break;
+    case 'linkRuleScene':{const r=S.rules.find(x=>x.id===el.dataset.id);const items=flatScenes().filter(s=>!r.scenes.includes(s.id)).map(s=>({id:s.id,label:(s.gist||'untitled').slice(0,40),sub:bookById(s.book)?.name}));pickOne('Which scene?',items,sid=>{r.scenes.push(sid);render();});break;}
+    case 'unlinkRuleScene':{const r=S.rules.find(x=>x.id===el.dataset.id);r.scenes=r.scenes.filter(s=>s!==el.dataset.s);render();break;}
+    case 'addLocEv':{const l=locById(S.ui.openLoc);l.timeline=l.timeline||[];askText('When — a time or era','',w=>{askText('What happened','',t=>{l.timeline.push({id:uid(),when:w,text:t});locPage();});},'e.g. Year 812, or "long ago"');break;}
+    case 'delLocEv':{const l=locById(S.ui.openLoc);l.timeline=l.timeline.filter(e=>e.id!==el.dataset.id);locPage();break;}
+    case 'linkScene':{const kind=el.dataset.kind,s=curScene();const items=flatScenes().filter(x=>x.id!==s.id&&!(s.links||[]).some(l=>l.to===x.id&&l.kind===kind)).map(x=>({id:x.id,label:(x.gist||'untitled').slice(0,40),sub:bookById(x.book)?.name}));pickOne(kind==='payoff'?'This sets up which scene?':'This leads to which scene?',items,tid=>{s.links=s.links||[];s.links.push({id:uid(),to:tid,kind});sceneEditor();});break;}
+    case 'unlinkScene':{const s=curScene();s.links=(s.links||[]).filter(l=>l.id!==el.dataset.id);sceneEditor();break;}
+    case 'slipTo':slipConvert(el.dataset.id,el.dataset.t);break;
+    case 'openRel':S.ui.openRel=[el.dataset.a,el.dataset.b];go('relOne');break;
+    case 'addMemory':{const a=S.ui.openRel[0],b=S.ui.openRel[1];askText('Shared memory','',v=>{relData(a,b).memories.push({id:uid(),text:v});relPage();},'e.g. saved each other');break;}
+    case 'delMemory':{const r=relData(S.ui.openRel[0],S.ui.openRel[1]);r.memories=r.memories.filter(m=>m.id!==el.dataset.id);relPage();break;}
+    case 'addSecret':{const a=S.ui.openRel[0],b=S.ui.openRel[1],who=el.dataset.id;askText('Something they know','',v=>{const r=relData(a,b);r.secrets[who]=r.secrets[who]||[];r.secrets[who].push(v);relPage();});break;}
+    case 'delSecret':{const r=relData(S.ui.openRel[0],S.ui.openRel[1]),who=el.dataset.id;if(r.secrets[who])r.secrets[who].splice(+el.dataset.i,1);relPage();break;}
+    case 'delChar':if(confirm('Delete this character?')){S.characters=S.characters.filter(x=>x.id!==S.ui.openCast);go('cast');}break;
+    case 'cycleColor':{const c=charById(S.ui.openCast);c.color=PAL[(PAL.indexOf(c.color)+1)%PAL.length];charPage();break;}
+    case 'addTrait':{const c=charById(S.ui.openCast);c.traits.push({id:uid(),name:'',poleLow:'',poleHigh:'',start:5,color:TRAIT_COLORS[c.traits.length%TRAIT_COLORS.length]});charPage();break;}
+    case 'delTrait':{const c=charById(S.ui.openCast);c.traits=c.traits.filter(t=>t.id!==el.dataset.tid);charPage();break;}
+    case 'setFrom':{charById(S.ui.openCast).attrs.from=id||null;charPage();break;}
+    case 'addStruggle':addStruggle();break;
+    case 'coreOn':{const c=charById(S.ui.openCast);c.core=c.core||{};c.core[el.dataset.k]=5;charPage();break;}
+    case 'coreOff':{const c=charById(S.ui.openCast);delete c.core[el.dataset.k];charPage();break;}
+    case 'coreInfo':{S.ui.coreInfo=S.ui.coreInfo||{};S.ui.coreInfo[el.dataset.k]=!S.ui.coreInfo[el.dataset.k];charPage();break;}
+    case 'addWound':{const c=charById(S.ui.openCast);c.wounds=c.wounds||[];c.wounds.push({id:uid(),title:'',event:'',belief:'',behavior:'',healing:''});charPage();break;}
+    case 'delWound':{const c=charById(S.ui.openCast);c.wounds=c.wounds.filter(w=>w.id!==el.dataset.id);charPage();break;}
+    case 'toggleStruggle':{const st=findStruggle(el.dataset.sid);if(st){st.done=!st.done;charPage();}break;}
+    case 'delStruggle':{const c=charById(S.ui.openCast);c.struggles=c.struggles.filter(s=>s.id!==el.dataset.sid);charPage();break;}
+    /* attrs (shared) */
+    case 'attr':toggleAttr(el.dataset.key,el.dataset.type,el.dataset.val);break;
+    case 'attrAdd':attrAdd(el.dataset.key,el.dataset.type);break;
+    /* world */
+    case 'addLoc':{const l={id:uid(),name:'New place',color:PAL[S.locations.length%PAL.length],parent:null,attrs:{},facets:{}};S.locations.push(l);S.ui.openLoc=l.id;S.ui.facet=null;go('locOne');break;}
+    case 'addSub':{const l={id:uid(),name:'New sub-place',color:locById(id).color,parent:id,attrs:{},facets:{}};S.locations.push(l);S.ui.openLoc=l.id;S.ui.facet=null;go('locOne');break;}
+    case 'openLoc':S.ui.openLoc=id;S.ui.facet=null;go('locOne');break;
+    case 'openParent':S.ui.openLoc=id;S.ui.facet=null;go('locOne');break;
+    case 'goWorld':go('world');break;
+    case 'openFacet':S.ui.facet=el.dataset.k;locPage();break;
+    case 'closeFacet':S.ui.facet=null;locPage();break;
+    case 'addItem':{const k=el.dataset.k,li=el.dataset.l,l=locById(S.ui.openLoc);askText('Add','',v=>{l.facets[k]=l.facets[k]||{};l.facets[k][li]=l.facets[k][li]||[];l.facets[k][li].push(v);locPage();});break;}
+    case 'delItem':{const l=locById(S.ui.openLoc),k=el.dataset.k,li=el.dataset.l;if(l.facets[k]&&l.facets[k][li])l.facets[k][li].splice(+el.dataset.i,1);locPage();break;}
+    case 'startConnect':S.ui.conn={from:{kind:el.dataset.k,id:el.dataset.id},to:null};renderConnSheet();break;
+    case 'connTo':S.ui.conn.to={kind:el.dataset.k,id:el.dataset.id};renderConnSheet();break;
+    case 'connLabel':makeConn(el.dataset.v);break;
+    case 'connLabelCustom':{const keep=S.ui.conn;askText('How are they linked?','',v=>{S.ui.conn=keep;makeConn(v);},'e.g. sworn rival');break;}
+    case 'delConn':S.connections=S.connections.filter(x=>x.id!==el.dataset.id);render();break;
+    case 'openEnt':if(el.dataset.k==='character'){S.ui.openCast=el.dataset.id;go('castOne');}else{S.ui.openLoc=el.dataset.id;S.ui.facet=null;go('locOne');}break;
+    case 'webFocus':S.ui.webFocus={kind:el.dataset.k,id:el.dataset.id};go('web');break;
+    case 'delLoc':{const l=locById(S.ui.openLoc);const kids=S.locations.filter(x=>x.parent===l.id);
+      if(confirm(`Delete "${l.name}"?${kids.length?' Its sub-places go too.':''}`)){const drop=new Set([l.id,...kids.map(k=>k.id)]);
+        S.locations=S.locations.filter(x=>!drop.has(x.id));S.scenes.forEach(s=>{if(drop.has(s.location))s.location=null;});
+        go(l.parent?'world':'world');}break;}
+    case 'cycleLocColor':{const l=locById(S.ui.openLoc);l.color=PAL[(PAL.indexOf(l.color)+1)%PAL.length];locPage();break;}
+    /* settings */
+    case 'exportData':exportData();break;
+    case 'openCloud':openCloud();break;
+    case 'cloudConnect':cloudConnect();break;
+    case 'cloudSignin':cloudSignin();break;
+    case 'cloudSignup':cloudSignup();break;
+    case 'cloudBackup':cloudBackup();break;
+    case 'cloudRestore':cloudRestore();break;
+    case 'cloudRestoreDo':cloudRestoreDo();break;
+    case 'cloudSignout':cloudSignout();break;
+    case 'cloudDisconnect':cloudDisconnect();break;
+    case 'importData':importData();break;
+  }
+}
+function handleInput(e){
+  if(e.target.id==='gist'){const s=curScene();if(s){s.gist=e.target.value;}e.target.style.height='auto';e.target.style.height=e.target.scrollHeight+'px';save();return;}
+  const el=A(e);if(!el)return;const a=el.dataset.act;
+  switch(a){
+    case 'focusChar':S.ui.focusChar=el.value||null;S.ui.focusTrait=null;render();break;
+    case 'focusTrait':S.ui.focusTrait=el.value;render();break;
+    case 'cmpChar':S.ui['cmp'+el.dataset.side]=el.value||null;S.ui['cmp'+el.dataset.side+'t']=null;render();break;
+    case 'cmpTrait':S.ui['cmp'+el.dataset.side+'t']=el.value;render();break;
+    case 'setTrait':{const s=curScene(),cid=el.dataset.cid,tid=el.dataset.tid;s.arc=s.arc||{};s.arc[cid]=s.arc[cid]||{};s.arc[cid][tid]=+el.value;
+      const v=document.getElementById(`val-${cid}-${tid}`);if(v)v.textContent=el.value+'/10';save();break;}
+    case 'curVal':{const s=curScene();s.current=s.current||{};s.current[el.dataset.cid]=s.current[el.dataset.cid]||{};s.current[el.dataset.cid][el.dataset.k]=+el.value;
+      const o=document.getElementById('cur-'+el.dataset.cid+'-'+el.dataset.k);if(o)o.textContent=el.value+'/10';save();break;}
+    case 'traitName':{const t=findTrait(el.dataset.tid);if(t){t.name=el.value;save();}break;}
+    case 'traitPole':{const t=findTrait(el.dataset.tid);if(t){t[el.dataset.pole==='low'?'poleLow':'poleHigh']=el.value;save();}break;}
+    case 'traitStart':{const t=findTrait(el.dataset.tid);if(t){t.start=+el.value;const o=document.getElementById('start-'+t.id);if(o)o.textContent=el.value+'/10';save();}break;}
+    case 'charName':charById(S.ui.openCast).name=el.value;save();break;
+    case 'struggleText':{const st=findStruggle(el.dataset.sid);if(st){st.text=el.value;save();}break;}
+    case 'coreVal':{const c=charById(S.ui.openCast);c.core[el.dataset.k]=+el.value;const o=document.getElementById('core-'+el.dataset.k);if(o)o.textContent=el.value+'/10';save();break;}
+    case 'woundField':{const c=charById(S.ui.openCast),w=c.wounds.find(x=>x.id===el.dataset.id);if(w){w[el.dataset.f]=el.value;save();}break;}
+    case 'locName':locById(S.ui.openLoc).name=el.value;save();break;
+    case 'relDim':{const r=relData(S.ui.openRel[0],S.ui.openRel[1]);r.dims[el.dataset.k]=+el.value;const o=document.getElementById('rd-'+el.dataset.k);if(o)o.textContent=el.value+'/10';save();break;}
+    case 'relInfluence':{const r=relData(S.ui.openRel[0],S.ui.openRel[1]);r.influence=el.value;save();break;}
+    case 'objName':{const o=S.objects.find(x=>x.id===S.ui.openObj);o.name=el.value;save();break;}
+    case 'objNote':{const o=S.objects.find(x=>x.id===S.ui.openObj);o.note=el.value;save();break;}
+    case 'orgName':{const o=S.orgs.find(x=>x.id===S.ui.openOrg);o.name=el.value;save();break;}
+    case 'orgGoal':{const o=S.orgs.find(x=>x.id===S.ui.openOrg);o.goal=el.value;save();break;}
+  }
+}
+
+/* impls */
+function saveSlip(){const t=document.getElementById('capInput'),txt=(t.value||'').trim();if(!txt)return;
+  S.slips.push({id:uid(),text:txt,t:Date.now(),book:'b1',characters:[]});t.value='';render();setTimeout(()=>document.getElementById('capInput')?.focus(),30);}
+function fileSlip(id){const sl=S.slips.find(x=>x.id===id);if(!sl)return;
+  const sc={id:uid(),gist:sl.text,book:sl.book||'b1',milestone:null,characters:(sl.characters||[]).slice(),location:null,arc:{},t:Date.now()};
+  S.scenes.push(sc);S.slips=S.slips.filter(x=>x.id!==id);S.ui.editScene=sc.id;go('scene');}
+function moveScene(id,dir){const sc=S.scenes.find(x=>x.id===id);if(!sc)return;
+  const list=sc.milestone?scenesOfMs(sc.milestone):looseOf(sc.book);const pos=list.indexOf(sc),np=pos+dir;if(np<0||np>=list.length)return;
+  const other=list[np];const gi=S.scenes.indexOf(sc);S.scenes.splice(gi,1);S.scenes.splice(S.scenes.indexOf(other)+(dir>0?1:0),0,sc);
+  render();requestAnimationFrame(drawRail);}
+function moveMs(id,dir){const m=S.milestones.find(x=>x.id===id);const list=milestonesOf(m.book);const pos=list.indexOf(m),np=pos+dir;if(np<0||np>=list.length)return;
+  const other=list[np];const gi=S.milestones.indexOf(m);S.milestones.splice(gi,1);S.milestones.splice(S.milestones.indexOf(other)+(dir>0?1:0),0,m);render();}
+function togglePresent(cid){const s=curScene();s.characters=s.characters||[];
+  if(s.characters.includes(cid)){s.characters=s.characters.filter(x=>x!==cid);if(s.arc)delete s.arc[cid];}else s.characters.push(cid);sceneEditor();}
+function newChar(name){const c={id:uid(),name,color:PAL[S.characters.length%PAL.length],attrs:{},traits:[],struggles:[]};S.characters.push(c);return c;}
+function addStruggle(){const i=document.getElementById('newStruggle'),t=(i.value||'').trim();if(!t)return;
+  const c=charById(S.ui.openCast);c.struggles=c.struggles||[];c.struggles.push({id:uid(),text:t,done:false});charPage();}
+function toggleAttr(key,type,val){const sc=S.ui.view==='castOne'?charById(S.ui.openCast):locById(S.ui.openLoc);sc.attrs=sc.attrs||{};
+  if(type==='multi'){sc.attrs[key]=sc.attrs[key]||[];const i=sc.attrs[key].indexOf(val);i>=0?sc.attrs[key].splice(i,1):sc.attrs[key].push(val);}
+  else sc.attrs[key]=sc.attrs[key]===val?null:val;
+  S.ui.view==='castOne'?charPage():locPage();}
+function attrAdd(key,type){const kind=S.ui.view==='castOne'?'character':'location';
+  askText('Add an option','',val=>{if(!S.palettes[kind][key].includes(val))S.palettes[kind][key].push(val);toggleAttr(key,type,val);},'e.g. violet');}
+function exportData(){const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download='the-spine-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u);closeSheet();}
+function importData(){const i=document.createElement('input');i.type='file';i.accept='application/json';
+  i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
+    if(!confirm('Replace everything here with this file?'))return;S=migrate(d);S.ui.view='spine';DB.save(S);closeSheet();render();}
+    catch(e){alert("That file couldn't be read.");}};r.readAsText(f);};i.click();}
+function fmt(t){const d=new Date(t),n=new Date(),same=d.toDateString()===n.toDateString();
+  const tm=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  return same?('Today · '+tm):(d.toLocaleDateString([],{month:'short',day:'numeric'})+' · '+tm);}
+window.addEventListener('resize',()=>{if(S.ui.view==='spine')drawRail();});
+
+/* drag a scene by its grip onto a milestone or book header to relocate it; a tap on the grip opens the move picker */
+let drag=null;
+document.addEventListener('pointerdown',e=>{
+  const g=e.target.closest('[data-grip]');if(!g||S.ui.view!=='spine')return;
+  e.preventDefault();drag={id:g.dataset.grip,startY:e.clientY,moved:false,card:g.closest('.scene')};
+  try{g.setPointerCapture(e.pointerId);}catch(_){}
+},{passive:false});
+document.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  if(!drag.moved&&Math.abs(e.clientY-drag.startY)>6)drag.moved=true;
+  if(!drag.moved)return;
+  if(drag.card)drag.card.style.opacity='.35';
+  let over=null;
+  document.querySelectorAll('.ms-head,.book-head').forEach(h=>{h.classList.remove('drop');
+    const r=h.getBoundingClientRect();if(e.clientY>=r.top&&e.clientY<=r.bottom)over=h;});
+  if(over)over.classList.add('drop');drag.over=over;
+});
+document.addEventListener('pointerup',()=>{
+  if(!drag)return;const d=drag;drag=null;
+  document.querySelectorAll('.drop').forEach(h=>h.classList.remove('drop'));
+  if(d.card)d.card.style.opacity='';
+  if(!d.moved){moveSheet(d.id);return;}
+  if(d.over){const s=S.scenes.find(x=>x.id===d.id);
+    if(d.over.classList.contains('ms-head')){const m=S.milestones.find(x=>x.id===d.over.dataset.id);if(m&&s){s.book=m.book;s.milestone=m.id;}}
+    else if(d.over.dataset.book&&s){s.book=d.over.dataset.book;s.milestone=null;}
+    render();}
+});
+
+const ICON={
+  balance:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  gem:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M12 21l-3-12M12 21l3-12"/></svg>',
+  group:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="10" r="2.4"/><path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5M15 20c0-2 1.2-3.6 3-4.2"/></svg>',
+  scroll:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4zM6 4a2 2 0 0 0-2 2v2h2M9 9h7M9 13h7M9 17h4"/></svg>',
+  coin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 9.5a2.5 2 0 0 1 5 0c0 1.5-5 1-5 2.5a2.5 2 0 0 0 5 0"/></svg>',
+  flame:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2c1 4 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 1-3 .5 2 2 2 2 2 .5-3-2-4 2-8z"/></svg>',
+  speech:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/></svg>',
+  branch:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M6 8.5v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3M12 13.5v2"/></svg>',
+  crown:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8l3.5 3L12 5l5.5 6L21 8l-1.5 10h-15L3 8z"/></svg>',
+  mountain:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m3 20 6-11 4 6 2-3 6 8z"/></svg>',
+  mask:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5c0 9 3 14 8 14s8-5 8-14c-3 1-5 1.5-8 1.5S7 6 4 5z"/><path d="M9 11h.01M15 11h.01"/></svg>',
+  gearsm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',
+  scroll:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 4h11a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7M6 4a2 2 0 0 0-2 2v2h4M6 4a2 2 0 0 1 2 2v12a2 2 0 0 0 2 2"/><path d="M9 9h6M9 13h6"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7v5l9 9 7-7-9-9H5a2 2 0 0 0-2 2z"/><circle cx="7.5" cy="9.5" r="1"/></svg>',
+  cmp:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3"/></svg>',
+  grip:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  feather:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><path d="M16 8 2 22"/><path d="M17.5 15H9"/></svg>',
+  flag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 22V4M4 4h13l-2 4 2 4H4"/></svg>',
+  arc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 18c4 0 4-12 8-12s4 12 8 12"/></svg>',
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>',
+  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>',
+  chevR:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="m9 18 6-6-6-6"/></svg>',
+  down2:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>',
+  up2:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14M5 12h14"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>',
+  circle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  pin2:'<svg viewBox="0 0 24 24" fill="none" stroke="#1a1626" stroke-width="1.8"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  spineN:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18"/><circle cx="12" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>',
+  featherN:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><path d="M16 8 2 22"/></svg>',
+  cast:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.5a3 3 0 0 1 0 5.4M21 20a6 6 0 0 0-4-5.6"/></svg>',
+  world:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>'
+};
+render();
+if(Cloud.cfg())setTimeout(function(){fbInit(Cloud.cfg());},1500);
+</script>
+</body>
+</html>
