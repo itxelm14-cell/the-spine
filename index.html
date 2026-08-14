@@ -311,12 +311,36 @@
   .inline-add{display:flex;gap:8px;margin-top:10px}
   .inline-add .input{flex:1}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  .edov{position:fixed;inset:0;z-index:120;background:var(--bg);display:none;flex-direction:column}
+  .edov.show{display:flex}
+  .edov-bar{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--border-soft)}
+  .edov-title{font-family:var(--serif);font-size:16px;color:var(--muted);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .edov-count{font-family:var(--mono);font-size:11px;color:var(--faint);flex:none}
+  .edov-area{flex:1;width:100%;border:none;background:none;color:var(--ink);font-family:var(--serif);font-size:19px;line-height:1.55;padding:16px 18px calc(40px + env(safe-area-inset-bottom));outline:none;resize:none}
+  .chapter-card{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px}
+  .chapter-card:active{border-color:var(--gold)}
+  .chapter-card .cc-prev{font-family:var(--serif);font-size:16px;line-height:1.42;color:var(--ink);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+  .chapter-card .cc-empty{font-family:var(--serif);font-style:italic;color:var(--faint);font-size:16px}
+  .chapter-card .cc-meta{display:flex;align-items:center;gap:6px;margin-top:9px;font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+  .chapter-card .cc-meta svg{width:14px;height:14px}
+  .exp-btn{background:none;border:none;color:var(--faint);display:inline-grid;place-items:center;padding:0 2px;vertical-align:middle}
+  .exp-btn svg{width:15px;height:15px}
+  .body-flag{font-size:10.5px;color:var(--faint);font-family:var(--mono);display:inline-flex;align-items:center;gap:3px}
+  .body-flag svg{width:11px;height:11px}
 </style>
 </head>
 <body>
 <div class="app"><div id="root"></div></div>
 <div class="nav" id="nav"></div>
 <div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
+<div class="edov" id="edov">
+  <div class="edov-bar">
+    <button class="backbtn" data-act="edClose" style="font-weight:600">Done</button>
+    <span class="edov-title" id="edovTitle"></span>
+    <span class="edov-count" id="edovCount"></span>
+  </div>
+  <textarea class="edov-area" id="edovArea" placeholder="Write…"></textarea>
+</div>
 
 <script>
 "use strict";
@@ -510,7 +534,7 @@ function migrate(s){
   const d=seed();
   s.milestones=s.milestones||[]; s.palettes=s.palettes||d.palettes;
   for(const k of ['character','location']){ s.palettes[k]=Object.assign({},d.palettes[k],s.palettes[k]||{}); }
-  s.scenes=(s.scenes||[]).map(sc=>Object.assign({milestone:null,arc:{},characters:[],location:null},sc));
+  s.scenes=(s.scenes||[]).map(sc=>Object.assign({milestone:null,arc:{},characters:[],location:null,body:''},sc));
   s.characters=(s.characters||[]).map(c=>Object.assign({attrs:{},traits:[],struggles:[],core:{},wounds:[]},c));
   s.characters.forEach(c=>{c.core=c.core||{};c.wounds=c.wounds||[];
     if(c.struggles&&c.struggles.length&&!c.wounds.length){c.wounds=c.struggles.map(st=>({id:st.id||uid(),title:st.text||'',event:'',belief:'',behavior:'',healing:''}));}});
@@ -518,7 +542,7 @@ function migrate(s){
   s.slips=(s.slips||[]).map(sl=>Object.assign({book:'b1',characters:[]},sl));
   s.connections=s.connections||[];
   s.bonds=s.bonds||{};
-  s.threads=s.threads||[];
+  s.threads=(s.threads||[]).map((t,i)=>Object.assign({desc:'',color:PAL[i%PAL.length],books:[],chars:[]},t));
   s.themes=(s.themes||[]).map((t,i)=>Object.assign({desc:'',color:PAL[i%PAL.length],books:[],chars:[]},t));
   s.objects=(s.objects||[]).map(o=>Object.assign({color:PAL[0],note:'',owner:null,places:[],chars:[],scenes:[]},o));
   s.orgs=(s.orgs||[]).map(o=>Object.assign({color:PAL[0],goal:'',leader:null,members:[],hq:null,allies:[],enemies:[],scenes:[]},o));
@@ -626,15 +650,16 @@ function render(){
   if(v==='orgOne')return orgPage();
   if(v==='locOne')return locPage();
   if(v==='themeOne')return themeOne();
-  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView}[v]||viewSpine)();
+  if(v==='threadOne')return threadOne();
+  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView,threads:threadsView}[v]||viewSpine)();
   renderNav();bind();
   if(v==='spine'){drawRail();requestAnimationFrame(drawRail);setTimeout(drawRail,260);}
   if(v==='compare'){requestAnimationFrame(drawCompare);setTimeout(drawCompare,80);setTimeout(drawCompare,300);}
   save();
 }
 function topbar(){
-  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme'};
-  const parent={compare:'spine',balance:'spine',themes:'spine',heat:'cast',rels:'cast',web:'cast'};
+  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme',threads:'Storylines',threadOne:'A thread'};
+  const parent={compare:'spine',balance:'spine',themes:'spine',threads:'spine',heat:'cast',rels:'cast',web:'cast'};
   const par=parent[S.ui.view];
   const back=par
     ?`<button class="iconbtn" data-act="nav" data-v="${par}" aria-label="Back" style="flex:none">${ICON.back}</button>`
@@ -747,9 +772,9 @@ function viewSpine(){
 function filterBar(){
   const f=S.ui.filter;
   let b='<div class="focusbar" style="padding-top:0">';
-  S.threads.forEach(t=>{const on=f&&f.kind==='thread'&&f.id===t.id;
-    b+=`<button class="chip ${on?'on':''}" data-act="filterSet" data-kind="thread" data-id="${t.id}" style="${on?`background:${t.color};color:#1a1626`:''}"><span class="dot" style="background:${t.color}"></span>${esc(t.name)}</button>`;});
-  if(f&&f.kind==='thread')b+=`<button class="chip" data-act="filterClear">clear</button>`;
+  if(f){const t=(f.kind==='thread'?S.threads:S.themes).find(x=>x.id===f.id);
+    if(t){b+=`<button class="chip on" data-act="filterClear" style="${t.color?`background:${t.color};color:#1a1626`:''}">${f.kind}: ${esc(t.name)} ✕</button>`;}}
+  b+=`<button class="chip" data-act="goThreads">${ICON.branch} Threads</button>`;
   b+=`<button class="chip" data-act="goThemes">${ICON.mask} Themes</button>`;
   b+=`<button class="chip" data-act="goBalance">${ICON.balance} Balance</button>`;
   return b+'</div>';
@@ -789,7 +814,7 @@ function themeOne(){
       <div style="display:flex;align-items:center;gap:13px;margin-bottom:16px">
         <button class="swatch" style="width:46px;height:46px;background:${t.color}" data-act="cycleThemeColor">${ICON.mask}</button>
         <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0" value="${esc(t.name)}" data-act="themeName" placeholder="Theme name"></div>
-      <div class="field"><label>What this theme is, to you</label>
+      <div class="field"><label>What this theme is, to you <button class="exp-btn" data-act="openEd" data-kind="theme" data-id="${t.id}" data-field="desc">${ICON.expand}</button></label>
         <textarea class="gist-input" data-act="themeDesc" placeholder="Write it out — what you're exploring, the question under it, how it surfaces across the books…">${esc(t.desc||'')}</textarea></div>
       <div class="field"><label>Books it runs through</label><div class="chip-pick">${bookChips}</div></div>
       <div class="field"><label>Characters who carry it</label><div class="chip-pick">${charChips}</div></div>
@@ -798,17 +823,53 @@ function themeOne(){
   renderNav();bind();const ta=root.querySelector('[data-act="themeDesc"]');if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}save();
 }
 
+/* ---------------- THREADS (own section, 1.1d) ---------------- */
+function threadsView(){
+  const rows=S.threads.map(t=>{const n=flatScenes().filter(s=>(s.threads||[]).includes(t.id)).length;
+    return `<div class="row" data-act="openThread" data-id="${t.id}"><div class="swatch" style="background:${t.color}">${ICON.branch}</div>
+      <div style="flex:1;min-width:0"><div class="rt">${esc(t.name)}</div><div class="rs">${t.desc?esc(t.desc.slice(0,64)):'no description yet'}${n?' · '+n+' scene'+(n>1?'s':''):''}</div></div>
+      <span class="chev">${ICON.chevR}</span></div>`;}).join('');
+  return `<div class="view">
+    <div class="hint" style="margin:4px 0 14px">Storylines that run through the book — a romance, a rise to power, a secret kept. Tag scenes in the scene editor; colored dots mark them on the spine, and you can filter the spine to one from here.</div>
+    <div class="eyebrow">Threads</div>
+    ${S.threads.length?rows:`<div class="empty"><div class="mk">No threads yet.</div><p>Name a storyline that runs through the book — the campaign, the romance, the lie — and follow it across scenes.</p></div>`}
+    <button class="btn gold" style="width:100%;margin-top:6px" data-act="addThread">${ICON.plus} New thread</button></div>`;
+}
+function threadOne(){
+  const t=S.threads.find(x=>x.id===S.ui.openThread);if(!t){go('threads');return;}
+  t.books=t.books||[];t.chars=t.chars||[];
+  const bookChips=S.books.map(b=>`<button class="chip ${t.books.includes(b.id)?'on':''}" data-act="threadBook" data-id="${b.id}">${esc(b.name)}</button>`).join('');
+  const charChips=S.characters.map(c=>`<button class="chip ${t.chars.includes(c.id)?'on':''}" data-act="threadChar" data-id="${c.id}" style="${t.chars.includes(c.id)?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')||'<span class="hint">No characters yet.</span>';
+  const scenes=flatScenes().filter(s=>(s.threads||[]).includes(t.id));
+  const sceneList=scenes.length?scenes.map(s=>`<div class="conn-row"><span class="conn-lbl">${esc(bookById(s.book)?.name||'')}</span><button class="conn-to" data-act="openScene" data-id="${s.id}">“${esc((s.gist||'untitled').slice(0,30))}”</button></div>`).join(''):'<div class="hint">No scenes on this thread yet — tag them in the scene editor.</div>';
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goThreads">${ICON.back} Threads</button>
+    <span style="margin-left:auto"></span><button class="iconbtn" data-act="delThread">${ICON.trash}</button></div>
+    <div class="view">
+      <div style="display:flex;align-items:center;gap:13px;margin-bottom:16px">
+        <button class="swatch" style="width:46px;height:46px;background:${t.color}" data-act="cycleThreadColor">${ICON.branch}</button>
+        <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0" value="${esc(t.name)}" data-act="threadName" placeholder="Thread name"></div>
+      ${scenes.length?`<button class="btn" style="width:100%;margin-bottom:14px" data-act="filterThread" data-id="${t.id}">${ICON.spineN} Show just this thread on the spine</button>`:''}
+      <div class="field"><label>What this thread is <button class="exp-btn" data-act="openEd" data-kind="thread" data-id="${t.id}" data-field="desc">${ICON.expand}</button></label>
+        <textarea class="gist-input" data-act="threadDesc" placeholder="The storyline — where it starts, what it turns on, how it ends…">${esc(t.desc||'')}</textarea></div>
+      <div class="field"><label>Books it runs through</label><div class="chip-pick">${bookChips}</div></div>
+      <div class="field"><label>Characters in it</label><div class="chip-pick">${charChips}</div></div>
+      <div class="eyebrow">Scenes on this thread</div>${sceneList}
+    </div>`;
+  renderNav();bind();const ta=root.querySelector('[data-act="threadDesc"]');if(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}save();
+}
+
 function sceneRow(s,i,n){
   const who=(s.characters||[]).map(id=>{const c=charById(id);return c?`<span class="av" style="background:${c.color}">${esc(initials(c.name))}</span>`:'';}).join('');
   const lc=s.location&&locById(s.location);
   const tdots=(s.threads||[]).map(id=>{const t=S.threads.find(x=>x.id===id);return t?`<span class="tdot" style="background:${t.color}"></span>`:'';}).join('');
   const thdots=(s.themes||[]).map(id=>{const t=S.themes.find(x=>x.id===id);return t?`<span class="tdot" style="background:transparent;border:1.5px solid ${t.color||'var(--faint)'}"></span>`:'';}).join('');
+  const bw=((s.body||'').trim().match(/\S+/g)||[]).length;
   const g=(s.gist||'').trim();
   return `<div class="scene" data-id="${s.id}">
     <div class="sc-grip" data-grip="${s.id}" title="Drag to another book or milestone · tap to move">${ICON.grip}</div>
     <div class="sc-main" data-act="openScene" data-id="${s.id}">
       <div class="gist-c ${g?'':'empty'}">${g?esc(g):'untitled — tap to write'}</div>
-      ${(who||lc||tdots||thdots)?`<div class="sc-sub">${who?`<div class="who">${who}</div>`:''}${lc?`<span class="loc-chip" style="color:${lc.color}">${esc(lc.name)}</span>`:''}${(tdots||thdots)?`<span class="tdots">${tdots}${thdots}</span>`:''}</div>`:''}
+      ${(who||lc||tdots||thdots||bw)?`<div class="sc-sub">${who?`<div class="who">${who}</div>`:''}${lc?`<span class="loc-chip" style="color:${lc.color}">${esc(lc.name)}</span>`:''}${(tdots||thdots)?`<span class="tdots">${tdots}${thdots}</span>`:''}${bw?`<span class="body-flag">${ICON.feather} ${bw}</span>`:''}</div>`:''}
     </div>
     <div class="sc-tools">
       <button data-act="scUp" data-id="${s.id}" ${i===0?'disabled style=opacity:.25':''}>${ICON.up}</button>
@@ -989,6 +1050,11 @@ function sceneEditor(){
     <div class="view">
       <div class="field"><label>The moment</label>
         <textarea class="gist-input" id="gist" placeholder="Say what happens, in a line…">${esc(s.gist||'')}</textarea></div>
+      <div class="field"><label>The scene</label>
+        <button class="chapter-card" data-act="openEd" data-kind="scene" data-id="${s.id}" data-field="body">
+          ${(s.body||'').trim()?`<div class="cc-prev">${esc((s.body||'').trim())}</div>`:`<div class="cc-empty">Write the scene — tap to open the full-screen editor.</div>`}
+          <div class="cc-meta">${ICON.expand}<span>${((s.body||'').trim().match(/\S+/g)||[]).length?(((s.body||'').trim().match(/\S+/g)||[]).length+' words'):'full-screen editor'}</span></div>
+        </button></div>
       <div class="field"><label>Book</label><div class="chip-pick">${bookBtns}</div></div>
       <div class="field"><label>Milestone it builds toward</label><div class="chip-pick">${msBtns}</div></div>
       <div class="field"><label>Who's in it</label><div class="chip-pick">${charBtns}</div></div>
@@ -1199,7 +1265,7 @@ function objPage(){
       <div class="field"><label>Where it is / has been</label><div class="chip-pick">${multi(o.places,locs,'objPlace')||'<span class="hint">No places yet.</span>'}</div></div>
       <div class="field"><label>Tied to</label><div class="chip-pick">${multi(o.chars,chars,'objChar')||'<span class="hint">No characters yet.</span>'}</div></div>
       <div class="field"><label>Appears in</label><div class="chip-pick">${multi(o.scenes,scenes,'objScene')||'<span class="hint">No scenes yet.</span>'}</div></div>
-      <div class="field"><label>Its story</label><textarea class="gist-input" data-act="objNote" placeholder="History, meaning, what it costs to use…">${esc(o.note||'')}</textarea></div>
+      <div class="field"><label>Its story <button class="exp-btn" data-act="openEd" data-kind="object" data-id="${o.id}" data-field="note">${ICON.expand}</button></label><textarea class="gist-input" data-act="objNote" placeholder="History, meaning, what it costs to use…">${esc(o.note||'')}</textarea></div>
     </div>`;
   renderNav();bind();save();
 }
@@ -1223,7 +1289,7 @@ function orgPage(){
       <div class="field"><label>Allies</label><div class="chip-pick">${multi(o.allies,others,'orgAlly')||'<span class="hint">No other groups yet.</span>'}</div></div>
       <div class="field"><label>Enemies</label><div class="chip-pick">${multi(o.enemies,others,'orgEnemy')||'<span class="hint">No other groups yet.</span>'}</div></div>
       <div class="field"><label>Appears in</label><div class="chip-pick">${multi(o.scenes,scenes,'orgScene')||'<span class="hint">No scenes yet.</span>'}</div></div>
-      <div class="field"><label>What they want</label><textarea class="gist-input" data-act="orgGoal" placeholder="Their goal, their grievance, their price…">${esc(o.goal||'')}</textarea></div>
+      <div class="field"><label>What they want <button class="exp-btn" data-act="openEd" data-kind="org" data-id="${o.id}" data-field="goal">${ICON.expand}</button></label><textarea class="gist-input" data-act="orgGoal" placeholder="Their goal, their grievance, their price…">${esc(o.goal||'')}</textarea></div>
     </div>`;
   renderNav();bind();save();
 }
@@ -1438,7 +1504,7 @@ function relPage(){
 function renderNav(){
   const v=S.ui.view;
   const map=[['spine','Spine',ICON.spineN],['capture','Catch',ICON.featherN],['cast','Cast',ICON.cast],['world','World',ICON.world]];
-  const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'||v==='themes'||v==='themeOne'?'spine':(v==='heat'||v==='rels'||v==='relOne'?'cast':v))));
+  const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'||v==='themes'||v==='themeOne'||v==='threads'||v==='threadOne'?'spine':(v==='heat'||v==='rels'||v==='relOne'?'cast':v))));
   document.getElementById('nav').innerHTML=`<div class="nav-inner">${map.map(([k,lab,ic])=>`<button data-act="nav" data-v="${k}" class="${active===k?'on':''}">${ic}${k==='capture'&&S.slips.length?`<span class="badge">${S.slips.length}</span>`:''}<span>${lab}</span></button>`).join('')}</div>`;
 }
 
@@ -1475,6 +1541,32 @@ function settingsSheet(){openSheet(`<h3>The Spine</h3>
 function bind(){root.onclick=handleClick;document.getElementById('nav').onclick=handleClick;root.oninput=handleInput;}
 document.getElementById('scrim').onclick=e=>{if(e.target.id==='scrim')closeSheet();};
 document.getElementById('sheet').onclick=handleClick;
+
+/* ---- Reusable full-screen writing editor (1.2) ---- */
+let EDIT=null;
+function editorTarget(kind,id,field){
+  let obj=null,title='';
+  if(kind==='scene'){obj=S.scenes.find(x=>x.id===id);title='The scene';}
+  else if(kind==='theme'){obj=S.themes.find(x=>x.id===id);title='Theme';}
+  else if(kind==='object'){obj=S.objects.find(x=>x.id===id);title='Object';}
+  else if(kind==='org'){obj=S.orgs.find(x=>x.id===id);title='Group';}
+  else if(kind==='thread'){obj=S.threads.find(x=>x.id===id);title='Thread';}
+  else if(kind==='loc'){obj=locById(id);title='Place';}
+  return {obj,field,title};
+}
+function edCount(v){const w=((v||'').trim().match(/\S+/g)||[]).length;const el=document.getElementById('edovCount');if(el)el.textContent=w?(w+(w===1?' word':' words')):'';}
+function openEditor(kind,id,field){
+  const t=editorTarget(kind,id,field);if(!t.obj)return;
+  EDIT={kind,id,field};
+  document.getElementById('edovTitle').textContent=t.title;
+  const area=document.getElementById('edovArea');
+  area.value=(t.obj[field]!=null?t.obj[field]:'');edCount(area.value);
+  document.getElementById('edov').classList.add('show');
+  setTimeout(()=>{try{area.focus();}catch(e){}},60);
+}
+function closeEditor(){document.getElementById('edov').classList.remove('show');EDIT=null;render();}
+document.getElementById('edovArea').oninput=function(){if(!EDIT)return;const t=editorTarget(EDIT.kind,EDIT.id,EDIT.field);if(t.obj){t.obj[EDIT.field]=this.value;edCount(this.value);save();}};
+document.getElementById('edov').onclick=function(e){const el=e.target.closest('[data-act]');if(el&&el.dataset.act==='edClose')closeEditor();};
 const A=e=>e.target.closest('[data-act]');
 function curScene(){return S.scenes.find(x=>x.id===S.ui.editScene);}
 function findTrait(t){return charById(S.ui.openCast)?.traits.find(x=>x.id===t);}
@@ -1510,8 +1602,9 @@ function handleClick(e){
     case 'msUp':stop();moveMs(id,-1);break;
     case 'msDown':stop();moveMs(id,1);break;
     case 'delMs':{stop();const m=S.milestones.find(x=>x.id===id);if(confirm(`Delete "${m.name}"? Its scenes become loose.`)){S.scenes.forEach(s=>{if(s.milestone===id)s.milestone=null;});S.milestones=S.milestones.filter(x=>x.id!==id);render();}break;}
-    case 'addScene':{const sc={id:uid(),gist:'',book:el.dataset.book,milestone:el.dataset.ms,characters:[],location:null,arc:{},t:Date.now()};S.scenes.push(sc);S.ui.editScene=sc.id;go('scene');break;}
+    case 'addScene':{const sc={id:uid(),gist:'',body:'',book:el.dataset.book,milestone:el.dataset.ms,characters:[],location:null,arc:{},t:Date.now()};S.scenes.push(sc);S.ui.editScene=sc.id;go('scene');break;}
     case 'openScene':S.ui.editScene=id;go('scene');break;
+    case 'openEd':openEditor(el.dataset.kind,el.dataset.id,el.dataset.field);break;
     case 'scUp':stop();moveScene(id,-1);break;
     case 'scDown':stop();moveScene(id,1);break;
     /* capture */
@@ -1532,7 +1625,7 @@ function handleClick(e){
     case 'bondCustom':{const a=el.dataset.a,b=el.dataset.b,sid=curScene().id;askText('How do they stand here?','',v=>{setBondStage(a,b,sid,v);sceneEditor();},'e.g. uneasy truce');break;}
     case 'clearCur':{const s=curScene();if(s.current&&s.current[el.dataset.cid])delete s.current[el.dataset.cid][el.dataset.k];sceneEditor();break;}
     case 'toggleThread':{const s=curScene();s.threads=s.threads||[];const i=s.threads.indexOf(el.dataset.id);i>=0?s.threads.splice(i,1):s.threads.push(el.dataset.id);sceneEditor();break;}
-    case 'newThread':askText('New thread','',n=>{const t={id:uid(),name:n,color:PAL[S.threads.length%PAL.length]};S.threads.push(t);const s=curScene();s.threads=s.threads||[];s.threads.push(t.id);sceneEditor();},'e.g. Romance, Revenge');break;
+    case 'newThread':askText('New thread','',n=>{const t={id:uid(),name:n,desc:'',color:PAL[S.threads.length%PAL.length],books:[],chars:[]};S.threads.push(t);const s=curScene();s.threads=s.threads||[];s.threads.push(t.id);sceneEditor();},'e.g. Romance, Revenge');break;
     case 'toggleTheme':{const s=curScene();s.themes=s.themes||[];const i=s.themes.indexOf(el.dataset.id);i>=0?s.themes.splice(i,1):s.themes.push(el.dataset.id);sceneEditor();break;}
     case 'newTheme':askText('New theme','',n=>{const t={id:uid(),name:n,desc:'',color:PAL[S.themes.length%PAL.length],books:[],chars:[]};S.themes.push(t);const s=curScene();s.themes=s.themes||[];s.themes.push(t.id);sceneEditor();},'e.g. Belonging, Sacrifice');break;
     case 'togglePurpose':{const s=curScene();s.purpose=s.purpose||[];const v=el.dataset.v,i=s.purpose.indexOf(v);i>=0?s.purpose.splice(i,1):s.purpose.push(v);sceneEditor();break;}
@@ -1541,6 +1634,14 @@ function handleClick(e){
     case 'filterClear':S.ui.filter=null;render();break;
     case 'goBalance':go('balance');break;
     case 'goThemes':go('themes');break;
+    case 'goThreads':go('threads');break;
+    case 'openThread':S.ui.openThread=el.dataset.id;go('threadOne');break;
+    case 'addThread':{const t={id:uid(),name:'New thread',desc:'',color:PAL[S.threads.length%PAL.length],books:[],chars:[]};S.threads.push(t);S.ui.openThread=t.id;go('threadOne');break;}
+    case 'delThread':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t&&confirm(`Delete thread "${t.name}"? Scenes keep their text — they just lose this tag.`)){S.scenes.forEach(s=>{if(s.threads)s.threads=s.threads.filter(id=>id!==t.id);});S.threads=S.threads.filter(x=>x.id!==S.ui.openThread);go('threads');}break;}
+    case 'cycleThreadColor':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){t.color=PAL[(PAL.indexOf(t.color)+1)%PAL.length];threadOne();}break;}
+    case 'threadBook':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){togID(t.books,el.dataset.id);threadOne();}break;}
+    case 'threadChar':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){togID(t.chars,el.dataset.id);threadOne();}break;}
+    case 'filterThread':S.ui.filter={kind:'thread',id:el.dataset.id};go('spine');break;
     case 'openTheme':S.ui.openTheme=el.dataset.id;go('themeOne');break;
     case 'addTheme':{const t={id:uid(),name:'New theme',desc:'',color:PAL[S.themes.length%PAL.length],books:[],chars:[]};S.themes.push(t);S.ui.openTheme=t.id;go('themeOne');break;}
     case 'delTheme':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t&&confirm(`Delete theme "${t.name}"? Scenes keep their text — they just lose this tag.`)){S.scenes.forEach(s=>{if(s.themes)s.themes=s.themes.filter(id=>id!==t.id);});S.themes=S.themes.filter(x=>x.id!==S.ui.openTheme);go('themes');}break;}
@@ -1664,6 +1765,8 @@ function handleInput(e){
     case 'locName':locById(S.ui.openLoc).name=el.value;save();break;
     case 'themeName':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.name=el.value;save();}break;}
     case 'themeDesc':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.desc=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
+    case 'threadName':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){t.name=el.value;save();}break;}
+    case 'threadDesc':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){t.desc=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'relDim':{const r=relData(S.ui.openRel[0],S.ui.openRel[1]);r.dims[el.dataset.k]=+el.value;const o=document.getElementById('rd-'+el.dataset.k);if(o)o.textContent=el.value+'/10';save();break;}
     case 'relInfluence':{const r=relData(S.ui.openRel[0],S.ui.openRel[1]);r.influence=el.value;save();break;}
     case 'objName':{const o=S.objects.find(x=>x.id===S.ui.openObj);o.name=el.value;save();break;}
@@ -1677,7 +1780,8 @@ function handleInput(e){
 function saveSlip(){const t=document.getElementById('capInput'),txt=(t.value||'').trim();if(!txt)return;
   S.slips.push({id:uid(),text:txt,t:Date.now(),book:'b1',characters:[]});t.value='';render();setTimeout(()=>document.getElementById('capInput')?.focus(),30);}
 function fileSlip(id){const sl=S.slips.find(x=>x.id===id);if(!sl)return;
-  const sc={id:uid(),gist:sl.text,book:sl.book||'b1',milestone:null,characters:(sl.characters||[]).slice(),location:null,arc:{},t:Date.now()};
+  const _t=(sl.text||'').trim();const _g=(_t.split(/\n/)[0]||_t).slice(0,60);
+  const sc={id:uid(),gist:_g,body:_t,book:sl.book||'b1',milestone:null,characters:(sl.characters||[]).slice(),location:null,arc:{},t:Date.now()};
   S.scenes.push(sc);S.slips=S.slips.filter(x=>x.id!==id);S.ui.editScene=sc.id;go('scene');}
 function moveScene(id,dir){const sc=S.scenes.find(x=>x.id===id);if(!sc)return;
   const list=sc.milestone?scenesOfMs(sc.milestone):looseOf(sc.book);const pos=list.indexOf(sc),np=pos+dir;if(np<0||np>=list.length)return;
@@ -1784,7 +1888,8 @@ const ICON={
   spineN:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18"/><circle cx="12" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>',
   featherN:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><path d="M16 8 2 22"/></svg>',
   cast:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.5a3 3 0 0 1 0 5.4M21 20a6 6 0 0 0-4-5.6"/></svg>',
-  world:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>'
+  world:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>',
+  expand:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>'
 };
 render();
 
