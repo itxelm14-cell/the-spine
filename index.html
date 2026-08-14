@@ -1631,7 +1631,106 @@ const ICON={
   world:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></svg>'
 };
 render();
-if(Cloud.cfg())setTimeout(function(){fbInit(Cloud.cfg());},1500);
+
+/* ============================================================
+   CLOUD AUTO-SYNC (mainline, folded in 1.1a)
+   Baked config + pull-on-open/focus + debounced push-on-change,
+   with wipe guards: an empty device never overwrites the cloud,
+   pushes wait for the initial pull, and a strictly-newer cloud
+   copy is adopted instead of clobbered. Fully offline-safe.
+   ============================================================ */
+(function(){
+  var BAKED={
+    apiKey:"AIzaSyBwADa3_5tT-cUTDHEsWZnHsy3ZIjgZHmI",
+    authDomain:"izzies-apps.firebaseapp.com",
+    databaseURL:"https://izzies-apps-default-rtdb.firebaseio.com",
+    projectId:"izzies-apps",
+    storageBucket:"izzies-apps.firebasestorage.app",
+    messagingSenderId:"260909314881",
+    appId:"1:260909314881:web:2080f2d3ea32537a6c27c0"
+  };
+  var origCfg=Cloud.cfg.bind(Cloud);
+  Cloud.cfg=function(){var c=null;try{c=origCfg();}catch(e){}return c||BAKED;};
+
+  function hasContent(st){
+    if(!st) return false;
+    var keys=['scenes','characters','slips','milestones','objects','orgs','rules','threads','themes','connections'];
+    for(var i=0;i<keys.length;i++){var v=st[keys[i]];if(v&&v.length)return true;}
+    if(st.bonds&&Object.keys(st.bonds).length)return true;
+    return false;
+  }
+  var lastSig=null;
+  function contentSig(){
+    try{
+      return JSON.stringify({b:S.books,m:S.milestones,sc:S.scenes,sl:S.slips,c:S.characters,
+        l:S.locations,p:S.palettes,cn:S.connections,bo:S.bonds,th:S.threads,tm:S.themes,
+        ob:S.objects,or:S.orgs,ru:S.rules});
+    }catch(e){return Math.random()+'';}
+  }
+  var pushT;
+  function scheduleAutoPush(){clearTimeout(pushT);pushT=setTimeout(autoPush,1500);}
+  function autoPush(){
+    if(!FB.user||!FB.pulled)return;
+    var ref;try{ref=firebase.database().ref('spine/'+FB.user.uid);}catch(e){return;}
+    ref.child('t').get().then(function(snap){
+      var ct=snap.val()||0;
+      if(ct>(FB.lastSeenT||0) && ct>(S._t||0)){cloudPull(function(){});return;}
+      var t=Date.now();
+      ref.set({data:JSON.stringify(S),t:t}).then(function(){
+        FB.lastSeenT=t;FB.lastT=t;if(typeof cloudOpen!=='undefined'&&cloudOpen)cloudSheet();
+      }).catch(function(){});
+    }).catch(function(){
+      var t=Date.now();
+      ref.set({data:JSON.stringify(S),t:t}).then(function(){FB.lastSeenT=t;FB.lastT=t;}).catch(function(){});
+    });
+  }
+  function cloudPull(cb){
+    if(!FB.user){cb&&cb();return;}
+    var ref;try{ref=firebase.database().ref('spine/'+FB.user.uid);}catch(e){FB.pulled=true;cb&&cb();return;}
+    ref.get().then(function(snap){
+      var v=snap.val(),cloudT=(v&&v.t)||0,cloudS=null;
+      if(v&&v.data){try{cloudS=JSON.parse(v.data);}catch(e){}}
+      if(cloudS){
+        var localHas=hasContent(S), cloudHas=hasContent(cloudS), localT=S._t||0;
+        if(cloudHas && (!localHas || cloudT>localT)){
+          S=migrate(cloudS); S._t=cloudT; S.ui.view=S.ui.view||'spine';
+          DB.save(S); FB.lastSeenT=cloudT; FB.lastT=cloudT; FB.pulled=true; lastSig=contentSig();
+          if(typeof cloudOpen!=='undefined'&&cloudOpen){cloudOpen=false;closeSheet();}
+          render();
+          cb&&cb(); return;
+        }
+        FB.lastSeenT=cloudT; FB.pulled=true; lastSig=contentSig();
+        if(localHas)autoPush();
+        cb&&cb(); return;
+      }
+      FB.lastSeenT=0; FB.pulled=true; lastSig=contentSig();
+      if(hasContent(S))autoPush();
+      cb&&cb();
+    }).catch(function(){FB.pulled=true;lastSig=contentSig();cb&&cb();});
+  }
+  var origSave=save;
+  save=function(){
+    origSave();
+    var sig=contentSig();
+    if(sig!==lastSig){ lastSig=sig; S._t=Date.now(); if(FB.pulled&&FB.user)scheduleAutoPush(); }
+  };
+  if(typeof cloudBackup==='function'){var ob=cloudBackup;cloudBackup=function(){FB.lastSeenT=Date.now();return ob.apply(this,arguments);};}
+  if(typeof cloudRestoreDo==='function'){var orr=cloudRestoreDo;cloudRestoreDo=function(){var r=orr.apply(this,arguments);lastSig=contentSig();FB.lastSeenT=S._t||Date.now();return r;};}
+  function attach(){
+    try{
+      firebase.auth().onAuthStateChanged(function(u){
+        FB.user=u;
+        if(u){ if(FB._pulledUid!==u.uid){FB._pulledUid=u.uid; cloudPull(function(){});} }
+        else { FB._pulledUid=null; FB.pulled=false; }
+      });
+    }catch(e){}
+  }
+  lastSig=contentSig();
+  fbInit(Cloud.cfg(), function(){ attach(); }, function(){});
+  function refocusPull(){ if(FB.user&&FB.pulled)cloudPull(function(){}); }
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden)refocusPull(); });
+  window.addEventListener('focus',refocusPull);
+})();
 </script>
 </body>
 </html>
