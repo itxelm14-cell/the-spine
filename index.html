@@ -533,9 +533,44 @@ function migrate(s){
   s.ui.editScene=null; s.ui.openCast=null; s.ui.openLoc=null; s.ui.facet=null; s.ui.filter=null;
   return s;
 }
-let S=migrate(DB.load()||seed());
+/* ---- PROJECTS LIBRARY (1.1b) ----
+   A typed layer above the single story blob. Each project has its own
+   independent data. Your existing story is wrapped as "Series 1" without
+   rewriting it, and is written to a NEW key — the legacy the-spine-v2 blob
+   is never touched, so it survives as an extra fallback. ---- */
+const LIBKEY='the-spine-lib-v3';
+function newProject(type,name){return {id:uid(),type:type||'story',name:name||'Untitled',createdAt:Date.now(),data:seed()};}
+function isLib(o){return !!(o&&typeof o==='object'&&Array.isArray(o.projects));}
+function looksStory(o){return !!(o&&typeof o==='object'&&!Array.isArray(o.projects)&&(o.books||o.scenes||o.characters||o.locations||o.ui));}
+function migrateLib(raw){
+  let lib;
+  if(isLib(raw)) lib=raw;
+  else if(looksStory(raw)) lib={version:3,projects:[{id:uid(),type:'story',name:'Series 1',createdAt:Date.now(),data:raw}],activeId:null};
+  else lib={version:3,projects:[],activeId:null};
+  lib.version=3; lib.projects=lib.projects||[];
+  lib.projects=lib.projects.map(function(p){
+    p=p||{}; p.id=p.id||uid(); p.type=p.type||'story'; p.name=p.name||'Untitled'; p.createdAt=p.createdAt||Date.now();
+    if(p.type==='story') p.data=migrate(p.data||seed()); else p.data=p.data||{};
+    return p;
+  });
+  if(!lib.projects.length) lib.projects.push(newProject('story','Series 1'));
+  if(lib.activeId && !lib.projects.some(function(p){return p.id===lib.activeId;})) lib.activeId=null;
+  return lib;
+}
+function loadLib(){
+  let raw=null;
+  try{raw=JSON.parse(localStorage.getItem(LIBKEY));}catch(e){}
+  if(!isLib(raw)){ const legacy=DB.load(); if(looksStory(legacy)) raw=legacy; } /* one-time wrap of pre-projects data */
+  return migrateLib(raw);
+}
+let LIB=loadLib();
+function activeProject(){return LIB.projects.find(function(p){return p.id===LIB.activeId;})||null;}
+function persistLib(){try{localStorage.setItem(LIBKEY,JSON.stringify(LIB));}catch(e){}}
+function openProjectById(id){const p=LIB.projects.find(function(x){return x.id===id;});if(!p)return;LIB.activeId=id;if(p.type==='story'){S=p.data;S.ui.view=S.ui.view||'spine';}persistLib();}
+function moveProject(id,dir){const i=LIB.projects.findIndex(function(p){return p.id===id;});const j=i+dir;if(i<0||j<0||j>=LIB.projects.length)return;const a=LIB.projects[i];LIB.projects[i]=LIB.projects[j];LIB.projects[j]=a;persistLib();render();}
+let S=(activeProject()&&activeProject().data) || (LIB.projects[0]&&LIB.projects[0].data) || migrate(seed());
 
-let saveT; function save(){clearTimeout(saveT);saveT=setTimeout(()=>DB.save(S),160);}
+let saveT; function save(){clearTimeout(saveT);saveT=setTimeout(persistLib,160);}
 function go(v){S.ui.view=v;render();window.scrollTo(0,0);}
 
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -581,6 +616,8 @@ function bondStageAtScene(a,b,sceneId){const pts=bondPoints(a,b);let cur=null;fo
 
 const root=document.getElementById('root');
 function render(){
+  if(!LIB.activeId) return renderHome();
+  const _ap=activeProject(); if(_ap&&_ap.type==='story'&&S!==_ap.data) S=_ap.data;
   const v=S.ui.view;
   if(v==='scene')return sceneEditor();
   if(v==='castOne')return charPage();
@@ -596,8 +633,60 @@ function render(){
 }
 function topbar(){
   const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group'};
-  return `<div class="topbar"><div class="brand"><small>${esc(t[S.ui.view]||'')}</small>The Spine</div>
-    <button class="iconbtn" data-act="settings" aria-label="Settings">${ICON.gear}</button></div>`;
+  const p=activeProject();
+  return `<div class="topbar">
+    <div style="display:flex;align-items:center;gap:9px;min-width:0;flex:1">
+      <button class="iconbtn" data-act="goHome" aria-label="My Stories" style="flex:none">${ICON.back}</button>
+      <div class="brand" style="min-width:0"><small>${esc(t[S.ui.view]||'')}</small><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p?p.name:'The Spine')}</span></div>
+    </div>
+    <button class="iconbtn" data-act="settings" aria-label="Settings" style="flex:none">${ICON.gear}</button></div>`;
+}
+
+/* ---------------- PROJECTS HOME (My Stories) ---------------- */
+function projTypeMeta(t){return ({story:{label:'Story / Series',icon:ICON.spineN},poetry:{label:'Poetry',icon:ICON.feather},song:{label:'Song',icon:ICON.arc}})[t]||{label:t,icon:ICON.spineN};}
+function storyStat(p){const d=p.data||{};const sc=(d.scenes||[]).length,ch=(d.characters||[]).length;
+  if(!sc&&!ch)return 'empty — nothing written yet';
+  return `${sc} scene${sc!==1?'s':''} · ${ch} character${ch!==1?'s':''}`;}
+function renderHome(){
+  document.getElementById('nav').innerHTML='';
+  const cards=LIB.projects.map((p,i)=>{const m=projTypeMeta(p.type);
+    return `<div class="row" data-act="openProject" data-id="${p.id}">
+      <div class="swatch" style="background:${PAL[i%PAL.length]}">${m.icon}</div>
+      <div style="flex:1;min-width:0"><div class="rt" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}</div>
+        <div class="rs">${esc(m.label)}${p.type==='story'?' · '+storyStat(p):''}</div></div>
+      <span class="ms-tools" style="flex:none">
+        <button data-act="projUp" data-id="${p.id}" ${i===0?'disabled style=opacity:.3':''}>${ICON.up}</button>
+        <button data-act="projDown" data-id="${p.id}" ${i===LIB.projects.length-1?'disabled style=opacity:.3':''}>${ICON.down}</button>
+        <button data-act="renameProject" data-id="${p.id}">${ICON.feather}</button>
+        <button data-act="delProject" data-id="${p.id}">${ICON.trash}</button>
+      </span></div>`;}).join('');
+  root.innerHTML=`<div class="topbar"><div class="brand"><small>Your creative work</small>My Stories</div>
+      <button class="iconbtn" data-act="settings" aria-label="Settings">${ICON.gear}</button></div>
+    <div class="view">
+      <div class="eyebrow">Projects</div>
+      ${cards}
+      <button class="btn gold" style="width:100%;margin-top:6px" data-act="newProject">${ICON.plus} New project</button>
+      <div class="hint" style="margin-top:14px;text-align:center">Each project keeps its own books, cast, world, and themes — nothing bleeds between them.</div>
+    </div>`;
+  bind();
+}
+function newProjectSheet(){
+  openSheet(`<h3>New project</h3>
+    <div class="slip-lbl">What are you making?</div>
+    <div class="chip-pick" style="margin-bottom:2px">
+      <button class="chip on" data-act="createProject" data-t="story">${ICON.spineN} Story / Series</button>
+      <button class="chip" style="opacity:.45;cursor:default">${ICON.feather} Poetry · Soon</button>
+      <button class="chip" style="opacity:.45;cursor:default">${ICON.arc} Song · Soon</button>
+    </div>
+    <div class="hint" style="margin-top:12px">Poetry and Song modes arrive in the next phase — the slot's reserved.</div>`);
+}
+function createProject(type){
+  if(type!=='story'){return;}
+  closeSheet();
+  askText('Name your series','',function(nm){
+    const n=newProject('story',nm||'New series');
+    LIB.projects.push(n);LIB.activeId=n.id;S=n.data;S.ui.view='spine';persistLib();render();window.scrollTo(0,0);
+  },'e.g. The Ember Trilogy');
 }
 
 /* ---------------- SPINE ---------------- */
@@ -1357,6 +1446,14 @@ function handleClick(e){
   switch(a){
     case 'nav':closeSheet();go(el.dataset.v);break;
     case 'settings':settingsSheet();break;
+    case 'goHome':closeSheet();LIB.activeId=null;persistLib();render();window.scrollTo(0,0);break;
+    case 'openProject':closeSheet();openProjectById(id);render();window.scrollTo(0,0);break;
+    case 'newProject':newProjectSheet();break;
+    case 'createProject':createProject(el.dataset.t);break;
+    case 'renameProject':{stop();const pr=LIB.projects.find(x=>x.id===id);if(pr)askText('Rename project',pr.name,n=>{pr.name=n;persistLib();render();});break;}
+    case 'projUp':stop();moveProject(id,-1);break;
+    case 'projDown':stop();moveProject(id,1);break;
+    case 'delProject':{stop();const pr=LIB.projects.find(x=>x.id===id);if(pr&&confirm(`Delete "${pr.name}" and everything inside it? This cannot be undone.`)){LIB.projects=LIB.projects.filter(x=>x.id!==id);if(!LIB.projects.length)LIB.projects.push(newProject('story','Series 1'));if(LIB.activeId===id)LIB.activeId=null;persistLib();render();}break;}
     case 'askOK':doAsk();break;
     case 'askCancel':closeSheet();break;
     case 'mvBook':S.ui.mv.book=el.dataset.b;renderMoveSheet();break;
@@ -1550,11 +1647,21 @@ function toggleAttr(key,type,val){const sc=S.ui.view==='castOne'?charById(S.ui.o
   S.ui.view==='castOne'?charPage():locPage();}
 function attrAdd(key,type){const kind=S.ui.view==='castOne'?'character':'location';
   askText('Add an option','',val=>{if(!S.palettes[kind][key].includes(val))S.palettes[kind][key].push(val);toggleAttr(key,type,val);},'e.g. violet');}
-function exportData(){const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);
+function exportData(){const b=new Blob([JSON.stringify(LIB,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);
   const a=document.createElement('a');a.href=u;a.download='the-spine-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u);closeSheet();}
 function importData(){const i=document.createElement('input');i.type='file';i.accept='application/json';
   i.onchange=()=>{const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
-    if(!confirm('Replace everything here with this file?'))return;S=migrate(d);S.ui.view='spine';DB.save(S);closeSheet();render();}
+    if(isLib(d)){
+      if(!confirm('Replace ALL projects here with this backup?'))return;
+      LIB=migrateLib(d);const ap=activeProject();S=(ap&&ap.data)||LIB.projects[0].data;
+    } else if(looksStory(d)){
+      const ap=activeProject();
+      if(!confirm(ap?`Replace "${ap.name}" with this backup?`:'Import this story as a new project?'))return;
+      S=migrate(d);
+      if(ap){ap.data=S;} else {const np={id:uid(),type:'story',name:'Series 1',createdAt:Date.now(),data:S};LIB.projects.push(np);LIB.activeId=np.id;}
+      S.ui.view='spine';
+    } else { alert("That file doesn't look like a Spine backup."); return; }
+    persistLib();closeSheet();render();}
     catch(e){alert("That file couldn't be read.");}};r.readAsText(f);};i.click();}
 function fmt(t){const d=new Date(t),n=new Date(),same=d.toDateString()===n.toDateString();
   const tm=d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
@@ -1633,11 +1740,11 @@ const ICON={
 render();
 
 /* ============================================================
-   CLOUD AUTO-SYNC (mainline, folded in 1.1a)
-   Baked config + pull-on-open/focus + debounced push-on-change,
-   with wipe guards: an empty device never overwrites the cloud,
-   pushes wait for the initial pull, and a strictly-newer cloud
-   copy is adopted instead of clobbered. Fully offline-safe.
+   CLOUD AUTO-SYNC (mainline) — syncs the whole project library.
+   Baked config + pull-on-open/focus + debounced push-on-change.
+   Wipe guards: an empty device never overwrites the cloud, pushes
+   wait for the initial pull, and a strictly-newer cloud copy is
+   adopted rather than clobbered. Fully offline-safe.
    ============================================================ */
 (function(){
   var BAKED={
@@ -1652,20 +1759,38 @@ render();
   var origCfg=Cloud.cfg.bind(Cloud);
   Cloud.cfg=function(){var c=null;try{c=origCfg();}catch(e){}return c||BAKED;};
 
-  function hasContent(st){
+  function storyHasContent(st){
     if(!st) return false;
     var keys=['scenes','characters','slips','milestones','objects','orgs','rules','threads','themes','connections'];
     for(var i=0;i<keys.length;i++){var v=st[keys[i]];if(v&&v.length)return true;}
     if(st.bonds&&Object.keys(st.bonds).length)return true;
     return false;
   }
+  function libHasContent(lib){
+    if(!lib||!lib.projects) return false;
+    if(lib.projects.length>1) return true;
+    for(var i=0;i<lib.projects.length;i++){var p=lib.projects[i];
+      if(p.type!=='story') return true;
+      if(storyHasContent(p.data)) return true;}
+    return false;
+  }
+  function libForCloud(){
+    return {version:3,_t:LIB._t||Date.now(),projects:(LIB.projects||[]).map(function(p){
+      var d=Object.assign({},p.data||{}); delete d.ui;
+      return {id:p.id,type:p.type,name:p.name,createdAt:p.createdAt,data:d};
+    })};
+  }
+  function asLib(parsed){
+    if(isLib(parsed)) return parsed;
+    if(looksStory(parsed)) return {version:3,projects:[{id:uid(),type:'story',name:'Series 1',createdAt:Date.now(),data:parsed}]};
+    return null;
+  }
   var lastSig=null;
   function contentSig(){
-    try{
-      return JSON.stringify({b:S.books,m:S.milestones,sc:S.scenes,sl:S.slips,c:S.characters,
-        l:S.locations,p:S.palettes,cn:S.connections,bo:S.bonds,th:S.threads,tm:S.themes,
-        ob:S.objects,or:S.orgs,ru:S.rules});
-    }catch(e){return Math.random()+'';}
+    try{ return JSON.stringify((LIB.projects||[]).map(function(p){
+      var d=p.data||{},c={}; for(var k in d){ if(k!=='ui') c[k]=d[k]; }
+      return {id:p.id,type:p.type,name:p.name,data:c};
+    })); }catch(e){return Math.random()+'';}
   }
   var pushT;
   function scheduleAutoPush(){clearTimeout(pushT);pushT=setTimeout(autoPush,1500);}
@@ -1674,37 +1799,42 @@ render();
     var ref;try{ref=firebase.database().ref('spine/'+FB.user.uid);}catch(e){return;}
     ref.child('t').get().then(function(snap){
       var ct=snap.val()||0;
-      if(ct>(FB.lastSeenT||0) && ct>(S._t||0)){cloudPull(function(){});return;}
+      if(ct>(FB.lastSeenT||0) && ct>(LIB._t||0)){cloudPull(function(){});return;}
       var t=Date.now();
-      ref.set({data:JSON.stringify(S),t:t}).then(function(){
+      ref.set({data:JSON.stringify(libForCloud()),t:t}).then(function(){
         FB.lastSeenT=t;FB.lastT=t;if(typeof cloudOpen!=='undefined'&&cloudOpen)cloudSheet();
       }).catch(function(){});
     }).catch(function(){
       var t=Date.now();
-      ref.set({data:JSON.stringify(S),t:t}).then(function(){FB.lastSeenT=t;FB.lastT=t;}).catch(function(){});
+      ref.set({data:JSON.stringify(libForCloud()),t:t}).then(function(){FB.lastSeenT=t;FB.lastT=t;}).catch(function(){});
     });
+  }
+  function adopt(cloudLib,cloudT){
+    var keep=LIB.activeId;
+    LIB=migrateLib(cloudLib); LIB._t=cloudT;
+    if(keep&&LIB.projects.some(function(p){return p.id===keep;})) LIB.activeId=keep; else LIB.activeId=null;
+    var ap=activeProject(); S=(ap&&ap.data)||LIB.projects[0].data;
+    lastSig=contentSig(); FB.lastSeenT=cloudT; FB.lastT=cloudT; FB.pulled=true;
+    persistLib();
+    if(typeof cloudOpen!=='undefined'&&cloudOpen){cloudOpen=false;closeSheet();}
+    render();
   }
   function cloudPull(cb){
     if(!FB.user){cb&&cb();return;}
     var ref;try{ref=firebase.database().ref('spine/'+FB.user.uid);}catch(e){FB.pulled=true;cb&&cb();return;}
     ref.get().then(function(snap){
-      var v=snap.val(),cloudT=(v&&v.t)||0,cloudS=null;
-      if(v&&v.data){try{cloudS=JSON.parse(v.data);}catch(e){}}
-      if(cloudS){
-        var localHas=hasContent(S), cloudHas=hasContent(cloudS), localT=S._t||0;
-        if(cloudHas && (!localHas || cloudT>localT)){
-          S=migrate(cloudS); S._t=cloudT; S.ui.view=S.ui.view||'spine';
-          DB.save(S); FB.lastSeenT=cloudT; FB.lastT=cloudT; FB.pulled=true; lastSig=contentSig();
-          if(typeof cloudOpen!=='undefined'&&cloudOpen){cloudOpen=false;closeSheet();}
-          render();
-          cb&&cb(); return;
-        }
+      var v=snap.val(),cloudT=(v&&v.t)||0,parsed=null;
+      if(v&&v.data){try{parsed=JSON.parse(v.data);}catch(e){}}
+      var cloudLib=asLib(parsed);
+      if(cloudLib){
+        var localHas=libHasContent(LIB), cloudHas=libHasContent(cloudLib), localT=LIB._t||0;
+        if(cloudHas && (!localHas || cloudT>localT)){ adopt(cloudLib,cloudT); cb&&cb(); return; }
         FB.lastSeenT=cloudT; FB.pulled=true; lastSig=contentSig();
         if(localHas)autoPush();
         cb&&cb(); return;
       }
       FB.lastSeenT=0; FB.pulled=true; lastSig=contentSig();
-      if(hasContent(S))autoPush();
+      if(libHasContent(LIB))autoPush();
       cb&&cb();
     }).catch(function(){FB.pulled=true;lastSig=contentSig();cb&&cb();});
   }
@@ -1712,10 +1842,20 @@ render();
   save=function(){
     origSave();
     var sig=contentSig();
-    if(sig!==lastSig){ lastSig=sig; S._t=Date.now(); if(FB.pulled&&FB.user)scheduleAutoPush(); }
+    if(sig!==lastSig){ lastSig=sig; LIB._t=Date.now(); if(FB.pulled&&FB.user)scheduleAutoPush(); }
   };
-  if(typeof cloudBackup==='function'){var ob=cloudBackup;cloudBackup=function(){FB.lastSeenT=Date.now();return ob.apply(this,arguments);};}
-  if(typeof cloudRestoreDo==='function'){var orr=cloudRestoreDo;cloudRestoreDo=function(){var r=orr.apply(this,arguments);lastSig=contentSig();FB.lastSeenT=S._t||Date.now();return r;};}
+  /* Manual backup/restore, made library-aware so they can't clobber other projects */
+  cloudBackup=function(){ if(!FB.user)return; cloudSheet('Backing up…');
+    var t=Date.now();
+    firebase.database().ref('spine/'+FB.user.uid).set({data:JSON.stringify(libForCloud()),t:t})
+      .then(function(){FB.lastT=t;FB.lastSeenT=t;cloudSheet('Backed up just now.');})
+      .catch(function(err){cloudSheet((err&&err.message)||'Backup failed.',true);}); };
+  cloudRestoreDo=function(){ if(!FB.user)return; cloudSheet('Restoring…');
+    firebase.database().ref('spine/'+FB.user.uid).get().then(function(snap){var v=snap.val();
+      if(!v||!v.data){cloudSheet('No cloud backup found yet — back up first.',true);return;}
+      try{ var cl=asLib(JSON.parse(v.data)); if(!cl){cloudSheet('That backup could not be read.',true);return;} adopt(cl,(v.t)||Date.now()); }
+      catch(e){cloudSheet('That backup could not be read.',true);}
+    }).catch(function(err){cloudSheet((err&&err.message)||'Restore failed.',true);}); };
   function attach(){
     try{
       firebase.auth().onAuthStateChanged(function(u){
