@@ -327,6 +327,19 @@
   .exp-btn svg{width:15px;height:15px}
   .body-flag{font-size:10.5px;color:var(--faint);font-family:var(--mono);display:inline-flex;align-items:center;gap:3px}
   .body-flag svg{width:11px;height:11px}
+  .notebook{margin-bottom:6px}
+  .nb-sec{border:1px solid var(--border-soft);border-radius:13px;margin-bottom:10px;overflow:hidden;background:var(--surface)}
+  .nb-head{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;background:none;text-align:left}
+  .nb-head:active{background:var(--raised)}
+  .nb-ic{display:grid;place-items:center;color:var(--gold);flex:none}
+  .nb-ic svg{width:18px;height:18px}
+  .nb-lab{flex:1;font-family:var(--serif);font-size:18px;font-weight:600}
+  .nb-count{font-family:var(--mono);font-size:10px;color:var(--gold);min-width:12px;text-align:center;flex:none}
+  .nb-count.empty{color:transparent}
+  .nb-chev{color:var(--faint);transition:transform .2s;flex:none}
+  .nb-chev svg{width:16px;height:16px}
+  .nb-sec.open .nb-chev{transform:rotate(90deg)}
+  .nb-body{padding:2px 14px 12px}
 </style>
 </head>
 <body>
@@ -549,7 +562,11 @@ function migrate(s){
   s.rules=(s.rules||[]).map(r=>Object.assign({scenes:[]},r));
   s.scenes.forEach(sc=>{sc.links=sc.links||[];});
   s.locations.forEach(l=>{l.timeline=l.timeline||[];});
-  s.locations.forEach(l=>{l.facets=l.facets||{};Object.keys(l.facets).forEach(k=>{if(Array.isArray(l.facets[k]))l.facets[k]={notes:l.facets[k]};});});
+  s.locations.forEach(l=>{l.facets=l.facets||{};
+    Object.keys(l.facets).forEach(fk=>{const fo=l.facets[fk];
+      if(Array.isArray(fo)){l.facets[fk]={notes:fo.join('\n')};return;}
+      if(fo&&typeof fo==='object'){Object.keys(fo).forEach(lk=>{if(Array.isArray(fo[lk]))fo[lk]=fo[lk].join('\n');});}
+    });});
   const coerce=(at,cats)=>{at=at||{};cats.forEach(c=>{const v=at[c.key];if(typeof v==='string')at[c.key]=[v];});return at;};
   s.characters.forEach(c=>{c.attrs=coerce(c.attrs,CHAR_CATS);});
   s.locations.forEach(l=>{l.attrs=coerce(l.attrs,LOC_CATS);});
@@ -1130,8 +1147,9 @@ const FACETS=[
   {key:'tags',label:'Your tags',icon:'tag',cats:['custom'],lists:[]}
 ];
 function listItems(l,fk,lk){return (l.facets[fk]&&l.facets[fk][lk])||[];}
+function facetProseVal(l,fk,lk){const fo=l.facets[fk];return (fo&&typeof fo[lk]==='string')?fo[lk]:'';}
 function locFilled(l,f){let n=0;(f.cats||[]).forEach(k=>{n+=(l.attrs[k]||[]).length;});
-  (f.lists||[]).forEach(li=>{n+=listItems(l,f.key,li.key).length;});
+  (f.lists||[]).forEach(li=>{const v=facetProseVal(l,f.key,li.key);if(v&&v.trim())n++;});
   if(f.key==='places')n+=S.locations.filter(x=>x.parent===l.id).length;
   if(f.key==='people')n+=S.characters.filter(c=>c.attrs&&c.attrs.from===l.id).length;
   return n;}
@@ -1300,21 +1318,33 @@ function timelineHTML(l){
     <button class="btn sm" data-act="addLocEv">${ICON.plus} Add event</button>`;
 }
 function attrCount(l){return Object.values(l.attrs||{}).filter(v=>v&&(Array.isArray(v)?v.length:true)).length;}
+function facetSection(l,f){
+  let h='';
+  if(f.prompt && locFilled(l,f)===0) h+=`<div class="prompt">${esc(f.prompt)}</div>`;
+  (f.cats||[]).forEach(k=>{const cat=LOC_CATS.find(c=>c.key===k);if(cat)h+=catHTML(cat,S.palettes.location,l.attrs);});
+  if(f.key==='places'){const kids=S.locations.filter(x=>x.parent===l.id);
+    h+=`<div class="field">${kids.map(k=>`<div class="row sub" data-act="openLoc" data-id="${k.id}"><div class="swatch" style="background:${k.color}">${ICON.pin2}</div><div><div class="rt">${esc(k.name)}</div></div><span class="chev">${ICON.chevR}</span></div>`).join('')}
+      <button class="btn" style="width:100%;margin-top:4px" data-act="addSub" data-id="${l.id}">${ICON.plus} Add a sub-place</button></div>`;}
+  if(f.key==='people'){const from=S.characters.filter(c=>c.attrs&&c.attrs.from===l.id);
+    h+=`<div class="field">${from.length?from.map(c=>`<div class="row sub" data-act="openChar" data-id="${c.id}"><div class="swatch" style="background:${c.color}">${esc(initials(c.name))}</div><div><div class="rt">${esc(c.name)}</div></div><span class="chev">${ICON.chevR}</span></div>`).join(''):`<div class="hint">Set a character's “From” to this place and they'll appear here.</div>`}</div>`;}
+  (f.lists||[]).forEach(li=>{const v=facetProseVal(l,f.key,li.key);
+    h+=`<div class="field"><label>${esc(li.label)} <button class="exp-btn" data-act="openEd" data-kind="locfacet" data-id="${l.id}" data-field="${f.key}:${li.key}">${ICON.expand}</button></label>
+      <textarea class="gist-input" data-act="facetProse" data-fk="${f.key}" data-lk="${li.key}" placeholder="Write freely…">${esc(v)}</textarea></div>`;});
+  return h;
+}
 function locPage(){
   const l=locById(S.ui.openLoc);if(!l){go('world');return;}l.attrs=l.attrs||{};l.facets=l.facets||{};
-  const facet=S.ui.facet&&FACETS.find(f=>f.key===S.ui.facet);
-  let body;
-  if(facet){
-    body=`<button class="backbtn" data-act="closeFacet" style="margin-bottom:14px">${ICON.back} all of ${esc(l.name)}</button>
-      <div class="facet-h">${ICON[facet.icon]||''}<span>${esc(facet.label)}</span></div>${facetDetail(l,facet)}`;
-  } else {
-    const parentLabel=l.parent?`<div class="hint" style="margin-bottom:14px">inside ${esc(locById(l.parent)?.name||'')}</div>`:'';
-    const tiles=FACETS.map(f=>{const n=locFilled(l,f);
-      return `<button class="ftile ${n?'on':''}" data-act="openFacet" data-k="${f.key}">
-        <span class="fic">${ICON[f.icon]||ICON.world}</span><span class="flab">${esc(f.label)}</span>
-        <span class="fcount ${n?'':'empty'}">${n||'—'}</span></button>`;}).join('');
-    body=`${parentLabel}<div class="ftiles">${tiles}</div>${timelineHTML(l)}${connSection('location',l.id)}${usageHTML(l.id)}`;
-  }
+  S.ui.locOpen=S.ui.locOpen||{};
+  const parentLabel=l.parent?`<div class="hint" style="margin-bottom:14px">inside ${esc(locById(l.parent)?.name||'')}</div>`:'';
+  const sections=FACETS.map(f=>{const open=S.ui.locOpen[f.key]!==false;const n=locFilled(l,f);
+    return `<div class="nb-sec ${open?'open':''}">
+      <button class="nb-head" data-act="toggleFacet" data-k="${f.key}">
+        <span class="nb-ic">${ICON[f.icon]||ICON.world}</span>
+        <span class="nb-lab">${esc(f.label)}</span>
+        <span class="nb-count ${n?'':'empty'}">${n||''}</span>
+        <span class="nb-chev">${ICON.chevR}</span></button>
+      ${open?`<div class="nb-body">${facetSection(l,f)}</div>`:''}</div>`;}).join('');
+  const body=`${parentLabel}<div class="notebook">${sections}</div>${timelineHTML(l)}${connSection('location',l.id)}${usageHTML(l.id)}`;
   root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="${l.parent?'openParent':'goWorld'}" data-id="${l.parent||''}">${ICON.back} ${l.parent?'Place':'World'}</button>
     <span style="margin-left:auto"></span><button class="iconbtn" data-act="delLoc">${ICON.trash}</button></div>
     <div class="view">
@@ -1323,7 +1353,9 @@ function locPage(){
         <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0" value="${esc(l.name)}" data-act="locName" placeholder="Place name"></div>
       ${body}
     </div>`;
-  renderNav();bind();save();
+  renderNav();bind();
+  root.querySelectorAll('textarea[data-act="facetProse"]').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});
+  save();
 }
 
 /* ---------------- CONNECTIONS / BRANCHES ---------------- */
@@ -1545,6 +1577,7 @@ document.getElementById('sheet').onclick=handleClick;
 /* ---- Reusable full-screen writing editor (1.2) ---- */
 let EDIT=null;
 function editorTarget(kind,id,field){
+  if(kind==='locfacet'){const parts=(field||'').split(':');const L=locById(id);if(!L)return {obj:null,field,title:''};L.facets=L.facets||{};L.facets[parts[0]]=L.facets[parts[0]]||{};return {obj:L.facets[parts[0]],field:parts[1],title:'Place'};}
   let obj=null,title='';
   if(kind==='scene'){obj=S.scenes.find(x=>x.id===id);title='The scene';}
   else if(kind==='theme'){obj=S.themes.find(x=>x.id===id);title='Theme';}
@@ -1560,12 +1593,12 @@ function openEditor(kind,id,field){
   EDIT={kind,id,field};
   document.getElementById('edovTitle').textContent=t.title;
   const area=document.getElementById('edovArea');
-  area.value=(t.obj[field]!=null?t.obj[field]:'');edCount(area.value);
+  area.value=(t.obj[t.field]!=null?t.obj[t.field]:'');edCount(area.value);
   document.getElementById('edov').classList.add('show');
   setTimeout(()=>{try{area.focus();}catch(e){}},60);
 }
 function closeEditor(){document.getElementById('edov').classList.remove('show');EDIT=null;render();}
-document.getElementById('edovArea').oninput=function(){if(!EDIT)return;const t=editorTarget(EDIT.kind,EDIT.id,EDIT.field);if(t.obj){t.obj[EDIT.field]=this.value;edCount(this.value);save();}};
+document.getElementById('edovArea').oninput=function(){if(!EDIT)return;const t=editorTarget(EDIT.kind,EDIT.id,EDIT.field);if(t.obj){t.obj[t.field]=this.value;edCount(this.value);save();}};
 document.getElementById('edov').onclick=function(e){const el=e.target.closest('[data-act]');if(el&&el.dataset.act==='edClose')closeEditor();};
 const A=e=>e.target.closest('[data-act]');
 function curScene(){return S.scenes.find(x=>x.id===S.ui.editScene);}
@@ -1713,6 +1746,7 @@ function handleClick(e){
     case 'openLoc':S.ui.openLoc=id;S.ui.facet=null;go('locOne');break;
     case 'openParent':S.ui.openLoc=id;S.ui.facet=null;go('locOne');break;
     case 'goWorld':go('world');break;
+    case 'toggleFacet':{S.ui.locOpen=S.ui.locOpen||{};const k=el.dataset.k;const open=S.ui.locOpen[k]!==false;S.ui.locOpen[k]=!open;locPage();break;}
     case 'openFacet':S.ui.facet=el.dataset.k;locPage();break;
     case 'closeFacet':S.ui.facet=null;locPage();break;
     case 'addItem':{const k=el.dataset.k,li=el.dataset.l,l=locById(S.ui.openLoc);askText('Add','',v=>{l.facets[k]=l.facets[k]||{};l.facets[k][li]=l.facets[k][li]||[];l.facets[k][li].push(v);locPage();});break;}
@@ -1763,6 +1797,7 @@ function handleInput(e){
     case 'coreVal':{const c=charById(S.ui.openCast);c.core[el.dataset.k]=+el.value;const o=document.getElementById('core-'+el.dataset.k);if(o)o.textContent=el.value+'/10';save();break;}
     case 'woundField':{const c=charById(S.ui.openCast),w=c.wounds.find(x=>x.id===el.dataset.id);if(w){w[el.dataset.f]=el.value;save();}break;}
     case 'locName':locById(S.ui.openLoc).name=el.value;save();break;
+    case 'facetProse':{const l=locById(S.ui.openLoc);if(l){l.facets=l.facets||{};l.facets[el.dataset.fk]=l.facets[el.dataset.fk]||{};l.facets[el.dataset.fk][el.dataset.lk]=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'themeName':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.name=el.value;save();}break;}
     case 'themeDesc':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.desc=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'threadName':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){t.name=el.value;save();}break;}
