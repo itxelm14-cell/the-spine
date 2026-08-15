@@ -340,6 +340,12 @@
   .nb-chev svg{width:16px;height:16px}
   .nb-sec.open .nb-chev{transform:rotate(90deg)}
   .nb-body{padding:2px 14px 12px}
+  .wound-ta{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 11px;color:var(--ink);font-family:var(--serif);font-size:16px;line-height:1.38;outline:none;resize:none;min-height:38px;display:block}
+  .wound-ta:focus{border-color:var(--gold)}
+  .trigger{position:relative;background:var(--raised);border:1px solid var(--border-soft);border-radius:11px;padding:10px 30px 10px 11px;margin-bottom:9px;display:flex;flex-direction:column;gap:6px}
+  .trig-del{position:absolute;top:8px;right:8px;color:var(--faint)}
+  .trig-del svg{width:14px;height:14px}
+  .trig-arrow{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.05em}
 </style>
 </head>
 <body>
@@ -488,7 +494,7 @@ const CHAR_CATS=[
   {key:'eyes',label:'Eyes',type:'multi'},
   {key:'hair',label:'Hair',type:'multi'},
   {key:'build',label:'Build',type:'multi'},
-  {key:'age',label:'Age',type:'multi'},
+  {key:'age',label:'Age',type:'single'},
   {key:'marks',label:'Marks',type:'multi'},
   {key:'nature',label:'Nature',type:'multi'},
   {key:'custom',label:'Your own tags',type:'multi'}
@@ -550,7 +556,9 @@ function migrate(s){
   s.scenes=(s.scenes||[]).map(sc=>Object.assign({milestone:null,arc:{},characters:[],location:null,body:''},sc));
   s.characters=(s.characters||[]).map(c=>Object.assign({attrs:{},traits:[],struggles:[],core:{},wounds:[]},c));
   s.characters.forEach(c=>{c.core=c.core||{};c.wounds=c.wounds||[];
-    if(c.struggles&&c.struggles.length&&!c.wounds.length){c.wounds=c.struggles.map(st=>({id:st.id||uid(),title:st.text||'',event:'',belief:'',behavior:'',healing:''}));}});
+    if(c.struggles&&c.struggles.length&&!c.wounds.length){c.wounds=c.struggles.map(st=>({id:st.id||uid(),title:st.text||'',event:'',belief:'',behavior:'',healing:''}));}
+    c.wounds=c.wounds.map(w=>Object.assign({id:uid(),title:'',societalLie:'',event:'',belief:'',coreFear:'',behavior:'',healing:'',triggers:[]},w));
+    c.wounds.forEach(w=>{w.triggers=(w.triggers||[]).map(tr=>Object.assign({id:uid(),trigger:'',response:''},tr));});});
   s.locations=(s.locations||[]).map(l=>Object.assign({parent:null,attrs:{},facets:{}},l));
   s.slips=(s.slips||[]).map(sl=>Object.assign({book:'b1',characters:[]},sl));
   s.connections=s.connections||[];
@@ -567,7 +575,7 @@ function migrate(s){
       if(Array.isArray(fo)){l.facets[fk]={notes:fo.join('\n')};return;}
       if(fo&&typeof fo==='object'){Object.keys(fo).forEach(lk=>{if(Array.isArray(fo[lk]))fo[lk]=fo[lk].join('\n');});}
     });});
-  const coerce=(at,cats)=>{at=at||{};cats.forEach(c=>{const v=at[c.key];if(typeof v==='string')at[c.key]=[v];});return at;};
+  const coerce=(at,cats)=>{at=at||{};cats.forEach(c=>{const v=at[c.key];if(c.type==='multi'){if(typeof v==='string')at[c.key]=[v];}else{if(Array.isArray(v))at[c.key]=v[0]||null;}});return at;};
   s.characters.forEach(c=>{c.attrs=coerce(c.attrs,CHAR_CATS);});
   s.locations.forEach(l=>{l.attrs=coerce(l.attrs,LOC_CATS);});
   if(!s.ui) s.ui=d.ui; s.ui.open=s.ui.open||{};
@@ -1198,10 +1206,26 @@ function charPage(){
   const wounds=(c.wounds||[]).map(w=>`<div class="wound">
     <button class="wound-del" data-act="delWound" data-id="${w.id}">${ICON.x}</button>
     <input class="input wound-title" value="${esc(w.title)}" data-act="woundField" data-id="${w.id}" data-f="title" placeholder="Name this wound">
-    <label>Defining event</label><input class="input" value="${esc(w.event)}" data-act="woundField" data-id="${w.id}" data-f="event" placeholder="What happened to her">
-    <label>False belief it taught</label><input class="input" value="${esc(w.belief)}" data-act="woundField" data-id="${w.id}" data-f="belief" placeholder="“No one stays.”">
-    <label>Protective behavior</label><input class="input" value="${esc(w.behavior)}" data-act="woundField" data-id="${w.id}" data-f="behavior" placeholder="Pushes people away first">
-    <label>Healing (optional)</label><input class="input" value="${esc(w.healing)}" data-act="woundField" data-id="${w.id}" data-f="healing" placeholder="Someone chooses to stay"></div>`).join('');
+    <label>Societal lie — the world's rule that made it hurt <button class="exp-btn" data-act="openEd" data-kind="wound" data-id="${w.id}" data-field="societalLie">${ICON.expand}</button></label>
+    <textarea class="wound-ta" data-act="woundField" data-id="${w.id}" data-f="societalLie" placeholder="The false rule the world runs on — “standing is everything, so being yourself is unsafe.”">${esc(w.societalLie||'')}</textarea>
+    <label>Defining event <button class="exp-btn" data-act="openEd" data-kind="wound" data-id="${w.id}" data-field="event">${ICON.expand}</button></label>
+    <textarea class="wound-ta" data-act="woundField" data-id="${w.id}" data-f="event" placeholder="What happened to her">${esc(w.event)}</textarea>
+    <label>False belief it taught <button class="exp-btn" data-act="openEd" data-kind="wound" data-id="${w.id}" data-field="belief">${ICON.expand}</button></label>
+    <textarea class="wound-ta" data-act="woundField" data-id="${w.id}" data-f="belief" placeholder="“No one stays.”">${esc(w.belief)}</textarea>
+    <label>Core fear — underneath the belief <button class="exp-btn" data-act="openEd" data-kind="wound" data-id="${w.id}" data-field="coreFear">${ICON.expand}</button></label>
+    <textarea class="wound-ta" data-act="woundField" data-id="${w.id}" data-f="coreFear" placeholder="The deeper fear the belief protects — “If I need anyone, I'll be left.”">${esc(w.coreFear||'')}</textarea>
+    <label>Protective behavior — her ongoing coping <button class="exp-btn" data-act="openEd" data-kind="wound" data-id="${w.id}" data-field="behavior">${ICON.expand}</button></label>
+    <textarea class="wound-ta" data-act="woundField" data-id="${w.id}" data-f="behavior" placeholder="Perfectionism, refusing help, needing control">${esc(w.behavior)}</textarea>
+    <label>Triggers — what sets it off, and what she does in the moment</label>
+    ${(w.triggers||[]).map(tr=>`<div class="trigger">
+      <button class="trig-del" data-act="delTrigger" data-wid="${w.id}" data-tid="${tr.id}">${ICON.x}</button>
+      <textarea class="wound-ta" data-act="triggerField" data-wid="${w.id}" data-tid="${tr.id}" data-f="trigger" placeholder="Trigger — e.g. someone questions her competence">${esc(tr.trigger)}</textarea>
+      <span class="trig-arrow">▾ she responds</span>
+      <textarea class="wound-ta" data-act="triggerField" data-wid="${w.id}" data-tid="${tr.id}" data-f="response" placeholder="Becomes cold, takes control, refuses input">${esc(tr.response)}</textarea>
+    </div>`).join('')}
+    <button class="btn sm" data-act="addTrigger" data-id="${w.id}" style="margin-bottom:6px">${ICON.plus} Add trigger</button>
+    <label>Healing — the corrective experience (optional) <button class="exp-btn" data-act="openEd" data-kind="wound" data-id="${w.id}" data-field="healing">${ICON.expand}</button></label>
+    <textarea class="wound-ta" data-act="woundField" data-id="${w.id}" data-f="healing" placeholder="Someone chooses to stay">${esc(w.healing)}</textarea></div>`).join('');
   root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goCast">${ICON.back} Cast</button>
     <span style="margin-left:auto"></span><button class="iconbtn" data-act="delChar">${ICON.trash}</button></div>
     <div class="view">
@@ -1570,7 +1594,7 @@ function settingsSheet(){openSheet(`<h3>The Spine</h3>
   <div class="sheet-row" style="color:var(--faint)">${ICON.info}<div><div>${S.scenes.length} scenes · ${S.characters.length} characters</div><div class="s">Saved on this device. Export now and then.</div></div></div>`);}
 
 /* ---------------- EVENTS ---------------- */
-function bind(){root.onclick=handleClick;document.getElementById('nav').onclick=handleClick;root.oninput=handleInput;}
+function bind(){root.onclick=handleClick;document.getElementById('nav').onclick=handleClick;root.oninput=handleInput;root.querySelectorAll('textarea.wound-ta').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});}
 document.getElementById('scrim').onclick=e=>{if(e.target.id==='scrim')closeSheet();};
 document.getElementById('sheet').onclick=handleClick;
 
@@ -1578,6 +1602,7 @@ document.getElementById('sheet').onclick=handleClick;
 let EDIT=null;
 function editorTarget(kind,id,field){
   if(kind==='locfacet'){const parts=(field||'').split(':');const L=locById(id);if(!L)return {obj:null,field,title:''};L.facets=L.facets||{};L.facets[parts[0]]=L.facets[parts[0]]||{};return {obj:L.facets[parts[0]],field:parts[1],title:'Place'};}
+  if(kind==='wound'){const cc=charById(S.ui.openCast);const w=cc&&cc.wounds.find(x=>x.id===id);if(!w)return {obj:null,field,title:''};return {obj:w,field,title:'Wound'};}
   let obj=null,title='';
   if(kind==='scene'){obj=S.scenes.find(x=>x.id===id);title='The scene';}
   else if(kind==='theme'){obj=S.themes.find(x=>x.id===id);title='Theme';}
@@ -1733,8 +1758,10 @@ function handleClick(e){
     case 'coreOn':{const c=charById(S.ui.openCast);c.core=c.core||{};c.core[el.dataset.k]=5;charPage();break;}
     case 'coreOff':{const c=charById(S.ui.openCast);delete c.core[el.dataset.k];charPage();break;}
     case 'coreInfo':{S.ui.coreInfo=S.ui.coreInfo||{};S.ui.coreInfo[el.dataset.k]=!S.ui.coreInfo[el.dataset.k];charPage();break;}
-    case 'addWound':{const c=charById(S.ui.openCast);c.wounds=c.wounds||[];c.wounds.push({id:uid(),title:'',event:'',belief:'',behavior:'',healing:''});charPage();break;}
+    case 'addWound':{const c=charById(S.ui.openCast);c.wounds=c.wounds||[];c.wounds.push({id:uid(),title:'',societalLie:'',event:'',belief:'',coreFear:'',behavior:'',healing:'',triggers:[]});charPage();break;}
     case 'delWound':{const c=charById(S.ui.openCast);c.wounds=c.wounds.filter(w=>w.id!==el.dataset.id);charPage();break;}
+    case 'addTrigger':{const c=charById(S.ui.openCast);const w=c.wounds.find(x=>x.id===el.dataset.id);if(w){w.triggers=w.triggers||[];w.triggers.push({id:uid(),trigger:'',response:''});charPage();}break;}
+    case 'delTrigger':{const c=charById(S.ui.openCast);const w=c.wounds.find(x=>x.id===el.dataset.wid);if(w){w.triggers=(w.triggers||[]).filter(tr=>tr.id!==el.dataset.tid);charPage();}break;}
     case 'toggleStruggle':{const st=findStruggle(el.dataset.sid);if(st){st.done=!st.done;charPage();}break;}
     case 'delStruggle':{const c=charById(S.ui.openCast);c.struggles=c.struggles.filter(s=>s.id!==el.dataset.sid);charPage();break;}
     /* attrs (shared) */
@@ -1795,7 +1822,8 @@ function handleInput(e){
     case 'charName':charById(S.ui.openCast).name=el.value;save();break;
     case 'struggleText':{const st=findStruggle(el.dataset.sid);if(st){st.text=el.value;save();}break;}
     case 'coreVal':{const c=charById(S.ui.openCast);c.core[el.dataset.k]=+el.value;const o=document.getElementById('core-'+el.dataset.k);if(o)o.textContent=el.value+'/10';save();break;}
-    case 'woundField':{const c=charById(S.ui.openCast),w=c.wounds.find(x=>x.id===el.dataset.id);if(w){w[el.dataset.f]=el.value;save();}break;}
+    case 'woundField':{const c=charById(S.ui.openCast),w=c.wounds.find(x=>x.id===el.dataset.id);if(w){w[el.dataset.f]=el.value;if(el.tagName==='TEXTAREA'){el.style.height='auto';el.style.height=el.scrollHeight+'px';}save();}break;}
+    case 'triggerField':{const c=charById(S.ui.openCast),w=c&&c.wounds.find(x=>x.id===el.dataset.wid);const tr=w&&(w.triggers||[]).find(x=>x.id===el.dataset.tid);if(tr){tr[el.dataset.f]=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'locName':locById(S.ui.openLoc).name=el.value;save();break;
     case 'facetProse':{const l=locById(S.ui.openLoc);if(l){l.facets=l.facets||{};l.facets[el.dataset.fk]=l.facets[el.dataset.fk]||{};l.facets[el.dataset.fk][el.dataset.lk]=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'themeName':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.name=el.value;save();}break;}
