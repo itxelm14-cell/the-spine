@@ -357,7 +357,10 @@
   .dlg-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
   .dlg-tag{font-size:10px;font-family:var(--mono);color:var(--gold);background:var(--gold-dim);border-radius:5px;padding:1px 6px}
   .dlg-tag.pp{color:var(--muted);background:var(--raised)}
-  #edovDlg{margin-left:auto}
+  #edovToggle{margin-left:auto}
+  .edov-read{flex:1;overflow:auto;padding:16px 18px calc(40px + env(safe-area-inset-bottom));font-family:var(--serif);font-size:19px;line-height:1.55;color:var(--ink)}
+  .dlg-mark{border-bottom:2px solid rgba(242,200,121,.6);cursor:pointer;padding-bottom:1px}
+  .dlg-mark:active{background:var(--gold-dim)}
 </style>
 </head>
 <body>
@@ -368,10 +371,12 @@
   <div class="edov-bar">
     <button class="backbtn" data-act="edClose" style="font-weight:600">Done</button>
     <span class="edov-title" id="edovTitle"></span>
+    <button class="btn sm" id="edovToggle" data-act="edToggle" style="display:none">Read</button>
     <button class="btn sm" id="edovDlg" data-act="edMarkDlg" style="display:none">+ Dialogue</button>
     <span class="edov-count" id="edovCount" style="margin-left:8px"></span>
   </div>
   <textarea class="edov-area" id="edovArea" placeholder="Write…"></textarea>
+  <div class="edov-read" id="edovRead" style="display:none"></div>
 </div>
 
 <script>
@@ -1638,14 +1643,16 @@ function openEditor(kind,id,field){
   EDIT={kind,id,field};
   document.getElementById('edovTitle').textContent=t.title;
   const dlgBtn=document.getElementById('edovDlg');if(dlgBtn)dlgBtn.style.display=(kind==='scene'&&field==='body')?'':'none';
+  const tgBtn=document.getElementById('edovToggle');if(tgBtn)tgBtn.style.display=(kind==='scene'&&field==='body')?'':'none';
+  edovMode='write';document.getElementById('edovRead').style.display='none';document.getElementById('edovArea').style.display='';
   const area=document.getElementById('edovArea');
   area.value=(t.obj[t.field]!=null?t.obj[t.field]:'');edCount(area.value);
   document.getElementById('edov').classList.add('show');
   setTimeout(()=>{try{area.focus();}catch(e){}},60);
 }
-function closeEditor(){document.getElementById('edov').classList.remove('show');EDIT=null;render();}
+function closeEditor(){document.getElementById('edov').classList.remove('show');document.getElementById('edovRead').style.display='none';document.getElementById('edovArea').style.display='';edovMode='write';EDIT=null;render();}
 document.getElementById('edovArea').oninput=function(){if(!EDIT)return;const t=editorTarget(EDIT.kind,EDIT.id,EDIT.field);if(t.obj){t.obj[t.field]=this.value;edCount(this.value);save();}};
-document.getElementById('edov').onclick=function(e){const el=e.target.closest('[data-act]');if(!el)return;if(el.dataset.act==='edClose')closeEditor();else if(el.dataset.act==='edMarkDlg')edMarkDialogue();};
+document.getElementById('edov').onclick=function(e){const el=e.target.closest('[data-act]');if(!el)return;if(el.dataset.act==='edClose')closeEditor();else if(el.dataset.act==='edMarkDlg')edMarkDialogue();else if(el.dataset.act==='edToggle')edovSetMode(edovMode==='read'?'write':'read');else if(el.dataset.act==='openDlg'){const dl=S.dialogue.find(x=>x.id===el.dataset.id);if(dl)openDialogCard(dl);}};
 /* ---- Dialogue capture (1.6a) ---- */
 let dlgDraft=null;
 function edMarkDialogue(){
@@ -1691,7 +1698,7 @@ function dlgSave(){
   if(d.id){const rec=S.dialogue.find(x=>x.id===d.id);if(rec)Object.assign(rec,{speaker:d.speaker,recipients:d.recipients,tone:d.tone,purpose:d.purpose,text:d.text});}
   else{S.dialogue.push({id:uid(),scene:d.scene,start:d.start,end:d.end,text:d.text,speaker:d.speaker,recipients:d.recipients,tone:d.tone,purpose:d.purpose,subtext:'',woundLink:null,triggerLink:null,pattern:null,notes:'',t:Date.now()});}
   dlgDraft=null;closeSheet();save();
-  if(!document.getElementById('edov').classList.contains('show'))render();
+  if(!document.getElementById('edov').classList.contains('show'))render();else edovRefreshRead();
 }
 function dlgSectionHTML(s){
   const dlgs=(S.dialogue||[]).filter(x=>x.scene===s.id).sort((a,b)=>(a.start||0)-(b.start||0));
@@ -1704,6 +1711,35 @@ function dlgSectionHTML(s){
   return `<div class="field"><label>Dialogue in this scene</label>
     ${dlgs.length?rows:'<div class="hint">Open the scene text, select a line, and tap the + Dialogue button to tag who is speaking.</div>'}</div>`;
 }
+/* ---- Dialogue read view (1.6b): scene text with subtle, tappable marks ---- */
+let edovMode='write';
+function renderBodyWithMarks(scene){
+  const body=scene.body||'';
+  const dls=(S.dialogue||[]).filter(x=>x.scene===scene.id);
+  let ranges=[];
+  dls.forEach(dl=>{const t=dl.text||'';if(!t)return;
+    let idx=body.indexOf(t,Math.max(0,(dl.start||0)-30));if(idx<0)idx=body.indexOf(t);
+    if(idx>=0){dl.start=idx;dl.end=idx+t.length;ranges.push({start:idx,end:idx+t.length,id:dl.id});}});
+  ranges.sort((a,b)=>a.start-b.start);
+  let clean=[],lastEnd=-1;ranges.forEach(r=>{if(r.start>=lastEnd){clean.push(r);lastEnd=r.end;}});
+  let html='',pos=0;
+  clean.forEach(r=>{html+=esc(body.slice(pos,r.start));html+=`<span class="dlg-mark" data-act="openDlg" data-id="${r.id}">${esc(body.slice(r.start,r.end))}</span>`;pos=r.end;});
+  html+=esc(body.slice(pos));
+  return html.replace(/\n/g,'<br>');
+}
+function edovSetMode(m){
+  edovMode=m;
+  const ta=document.getElementById('edovArea'),rd=document.getElementById('edovRead'),tg=document.getElementById('edovToggle'),dg=document.getElementById('edovDlg');
+  if(m==='read'){
+    const sc=EDIT&&S.scenes.find(x=>x.id===EDIT.id);
+    rd.innerHTML=sc?renderBodyWithMarks(sc):'';
+    ta.style.display='none';rd.style.display='';if(tg)tg.textContent='Write';if(dg)dg.style.display='none';
+  }else{
+    ta.style.display='';rd.style.display='none';if(tg)tg.textContent='Read';
+    if(dg)dg.style.display=(EDIT&&EDIT.kind==='scene'&&EDIT.field==='body')?'':'none';
+  }
+}
+function edovRefreshRead(){if(edovMode==='read'){const sc=EDIT&&S.scenes.find(x=>x.id===EDIT.id);const rd=document.getElementById('edovRead');if(rd&&sc)rd.innerHTML=renderBodyWithMarks(sc);}}
 const A=e=>e.target.closest('[data-act]');
 function curScene(){return S.scenes.find(x=>x.id===S.ui.editScene);}
 function findTrait(t){return charById(S.ui.openCast)?.traits.find(x=>x.id===t);}
@@ -1749,7 +1785,7 @@ function handleClick(e){
     case 'dlgToneCustom':{const keep=dlgDraft;askText('Add a tone','',v=>{dlgDraft=keep;if(dlgDraft&&!dlgDraft.tone.includes(v))dlgDraft.tone.push(v);dialogCard();});break;}
     case 'dlgPurpose':if(dlgDraft){togID(dlgDraft.purpose,el.dataset.v);dialogCard();}break;
     case 'dlgSave':dlgSave();break;
-    case 'dlgDelete':if(dlgDraft&&dlgDraft.id){S.dialogue=S.dialogue.filter(x=>x.id!==dlgDraft.id);dlgDraft=null;closeSheet();save();if(!document.getElementById('edov').classList.contains('show'))render();}break;
+    case 'dlgDelete':if(dlgDraft&&dlgDraft.id){S.dialogue=S.dialogue.filter(x=>x.id!==dlgDraft.id);dlgDraft=null;closeSheet();save();if(!document.getElementById('edov').classList.contains('show'))render();else edovRefreshRead();}break;
     case 'scUp':stop();moveScene(id,-1);break;
     case 'scDown':stop();moveScene(id,1);break;
     /* capture */
