@@ -578,6 +578,7 @@ function seed(){return{
   orgs:[],
   rules:[],
   dialogue:[],
+  ideas:[],
   ui:{view:'spine',focusChar:null,focusTrait:null,open:{},editScene:null,openCast:null,openLoc:null}
 };}
 function migrate(s){
@@ -599,6 +600,7 @@ function migrate(s){
   s.objects=(s.objects||[]).map(o=>Object.assign({color:PAL[0],note:'',owner:null,places:[],chars:[],scenes:[]},o));
   s.orgs=(s.orgs||[]).map(o=>Object.assign({color:PAL[0],goal:'',leader:null,members:[],hq:null,allies:[],enemies:[],scenes:[]},o));
   s.rules=(s.rules||[]).map(r=>Object.assign({scenes:[]},r));
+  s.ideas=(s.ideas||[]).map(n=>Object.assign({id:uid(),title:'',body:'',t:Date.now()},n));
   s.dialogue=(s.dialogue||[]).map(dl=>Object.assign({recipients:[],tone:[],purpose:[],subtext:'',woundLink:null,triggerLink:null,pattern:null,notes:''},dl));
   s.scenes.forEach(sc=>{sc.links=sc.links||[];});
   s.locations.forEach(l=>{l.timeline=l.timeline||[];});
@@ -620,7 +622,7 @@ function migrate(s){
    rewriting it, and is written to a NEW key — the legacy the-spine-v2 blob
    is never touched, so it survives as an extra fallback. ---- */
 const LIBKEY='the-spine-lib-v3';
-function newProject(type,name){return {id:uid(),type:type||'story',name:name||'Untitled',createdAt:Date.now(),data:seed()};}
+function newProject(type,name){return {id:uid(),type:type||'story',name:name||'Untitled',createdAt:Date.now(),data:(type==='poetry'?seedPoetry():seed())};}
 function isLib(o){return !!(o&&typeof o==='object'&&Array.isArray(o.projects));}
 function looksStory(o){return !!(o&&typeof o==='object'&&!Array.isArray(o.projects)&&(o.books||o.scenes||o.characters||o.locations||o.ui));}
 function migrateLib(raw){
@@ -631,7 +633,7 @@ function migrateLib(raw){
   lib.version=3; lib.projects=lib.projects||[];
   lib.projects=lib.projects.map(function(p){
     p=p||{}; p.id=p.id||uid(); p.type=p.type||'story'; p.name=p.name||'Untitled'; p.createdAt=p.createdAt||Date.now();
-    if(p.type==='story') p.data=migrate(p.data||seed()); else p.data=p.data||{};
+    if(p.type==='story') p.data=migrate(p.data||seed()); else if(p.type==='poetry') p.data=migratePoetry(p.data); else p.data=p.data||{};
     return p;
   });
   if(!lib.projects.length) lib.projects.push(newProject('story','Series 1'));
@@ -698,7 +700,9 @@ function bondStageAtScene(a,b,sceneId){const pts=bondPoints(a,b);let cur=null;fo
 const root=document.getElementById('root');
 function render(){
   if(!LIB.activeId) return renderHome();
-  const _ap=activeProject(); if(_ap&&_ap.type==='story'&&S!==_ap.data) S=_ap.data;
+  const _ap=activeProject();
+  if(_ap&&_ap.type==='poetry'){ if(S!==_ap.data)S=_ap.data; return renderPoetry(); }
+  if(_ap&&_ap.type==='story'&&S!==_ap.data) S=_ap.data;
   const v=S.ui.view;
   if(v==='scene')return sceneEditor();
   if(v==='castOne')return charPage();
@@ -709,15 +713,16 @@ function render(){
   if(v==='themeOne')return themeOne();
   if(v==='threadOne')return threadOne();
   if(v==='dlgOne')return dlgPage();
-  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView,threads:threadsView,dialogue:dlgHubView}[v]||viewSpine)();
+  if(v==='ideaOne')return ideaPage();
+  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView,threads:threadsView,dialogue:dlgHubView,ideas:ideasView}[v]||viewSpine)();
   renderNav();bind();
   if(v==='spine'){drawRail();requestAnimationFrame(drawRail);setTimeout(drawRail,260);}
   if(v==='compare'){requestAnimationFrame(drawCompare);setTimeout(drawCompare,80);setTimeout(drawCompare,300);}
   save();
 }
 function topbar(){
-  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme',threads:'Storylines',threadOne:'A thread',dialogue:'Dialogue'};
-  const parent={compare:'spine',balance:'spine',themes:'spine',threads:'spine',heat:'cast',rels:'cast',web:'cast',dialogue:'cast'};
+  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme',threads:'Storylines',threadOne:'A thread',dialogue:'Dialogue',ideas:'Plot & ideas',ideaOne:'A note'};
+  const parent={compare:'spine',balance:'spine',themes:'spine',threads:'spine',ideas:'spine',heat:'cast',rels:'cast',web:'cast',dialogue:'cast'};
   const par=parent[S.ui.view];
   const back=par
     ?`<button class="iconbtn" data-act="nav" data-v="${par}" aria-label="Back" style="flex:none">${ICON.back}</button>`
@@ -764,18 +769,103 @@ function newProjectSheet(){
     <div class="slip-lbl">What are you making?</div>
     <div class="chip-pick" style="margin-bottom:2px">
       <button class="chip on" data-act="createProject" data-t="story">${ICON.spineN} Story / Series</button>
-      <button class="chip" style="opacity:.45;cursor:default">${ICON.feather} Poetry · Soon</button>
+      <button class="chip" data-act="createProject" data-t="poetry">${ICON.feather} Poetry</button>
       <button class="chip" style="opacity:.45;cursor:default">${ICON.arc} Song · Soon</button>
     </div>
-    <div class="hint" style="margin-top:12px">Poetry and Song modes arrive in the next phase — the slot's reserved.</div>`);
+    <div class="hint" style="margin-top:12px">Song mode is coming soon — the slot's reserved.</div>`);
 }
 function createProject(type){
-  if(type!=='story'){return;}
-  closeSheet();
-  askText('Name your series','',function(nm){
-    const n=newProject('story',nm||'New series');
-    LIB.projects.push(n);LIB.activeId=n.id;S=n.data;S.ui.view='spine';persistLib();render();window.scrollTo(0,0);
-  },'e.g. The Ember Trilogy');
+  if(type!=='story'&&type!=='poetry'){return;}
+  closeSheet();const isP=type==='poetry';
+  askText(isP?'Name your collection':'Name your series','',function(nm){
+    const n=newProject(type,nm||(isP?'New collection':'New series'));
+    LIB.projects.push(n);LIB.activeId=n.id;S=n.data;S.ui.view=isP?'poems':'spine';persistLib();render();window.scrollTo(0,0);
+  },isP?'e.g. Salt & Distance':'e.g. The Ember Trilogy');
+}
+
+/* ================= POETRY MODE (2.1a) ================= */
+const POEM_STATUS=['Draft','Needs Rewrite','Revising','Finished'];
+const POEM_MOODS=['angry','nostalgic','tender','detached','hopeful','grieving'];
+const POEM_MOTIFS=['water','religion','body','home','seasons','fire','childhood'];
+function seedPoetry(){return {poems:[],fragments:[],ptthemes:[],sections:[],ui:{view:'poems'}};}
+function migratePoetry(d){
+  d=d||{};
+  d.poems=(d.poems||[]).map(p=>Object.assign({id:uid(),title:'',body:'',status:'Draft',themes:[],mood:[],motifs:[],section:null,annotations:[],t:Date.now()},p));
+  d.poems.forEach(p=>{p.annotations=(p.annotations||[]).map(a=>Object.assign({id:uid(),start:0,end:0,text:'',kind:'note',note:''},a));});
+  d.fragments=(d.fragments||[]).map(fr=>Object.assign({id:uid(),text:'',fromPoem:null,note:'',themes:[],t:Date.now()},fr));
+  d.ptthemes=(d.ptthemes||[]).map(t=>Object.assign({id:uid(),name:''},t));
+  d.sections=(d.sections||[]).map(sec=>Object.assign({id:uid(),name:''},sec));
+  d.ui=d.ui||{};d.ui.view=d.ui.view||'poems';
+  return d;
+}
+function renderPoetry(){
+  const v=S.ui.view||'poems';
+  if(v==='poemOne')return poemPage();
+  const body={poems:poemsView,fragments:fragmentsView,ptthemes:ptThemesView}[v]||poemsView;
+  root.innerHTML=poetryTopbar(v)+body();
+  renderPoetryNav(v);bind();save();
+}
+function poetryTopbar(v){
+  const t={poems:'The collection',fragments:'Saved lines',ptthemes:'What they\u2019re about',poemOne:'A poem'};
+  const p=activeProject();
+  return `<div class="topbar">
+    <div style="display:flex;align-items:center;gap:9px;min-width:0;flex:1">
+      <button class="iconbtn" data-act="goHome" aria-label="My Stories" style="flex:none">${ICON.back}</button>
+      <div class="brand" style="min-width:0"><small>${esc(t[v]||'')}</small><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p?p.name:'Poetry')}</span></div>
+    </div>
+    <button class="iconbtn" data-act="settings" aria-label="Settings" style="flex:none">${ICON.gear}</button></div>`;
+}
+function renderPoetryNav(v){
+  const map=[['poems','Poems',ICON.spineN],['fragments','Fragments',ICON.gem],['ptthemes','Themes',ICON.mask]];
+  const active=v==='poemOne'?'poems':v;
+  document.getElementById('nav').innerHTML=`<div class="nav-inner">${map.map(([k,lab,ic])=>`<button data-act="nav" data-v="${k}" class="${active===k?'on':''}">${ic}<span>${lab}</span></button>`).join('')}</div>`;
+}
+function poemsView(){
+  const rows=S.poems.map((p,i)=>{const th=(p.themes||[]).map(id=>{const t=S.ptthemes.find(x=>x.id===id);return t&&t.name;}).filter(Boolean).slice(0,2).join(', ');
+    return `<div class="row" data-act="openPoem" data-id="${p.id}"><div class="swatch" style="background:var(--raised2);color:var(--gold);font-family:var(--mono);font-size:14px">${i+1}</div>
+      <div style="flex:1;min-width:0"><div class="rt">${esc(p.title||'Untitled')}</div><div class="rs">${esc(p.status||'Draft')}${th?' · '+esc(th):''}</div></div>
+      <span class="ms-tools" style="flex:none"><button data-act="poemUp" data-id="${p.id}" ${i===0?'disabled style=opacity:.3':''}>${ICON.up}</button><button data-act="poemDown" data-id="${p.id}" ${i===S.poems.length-1?'disabled style=opacity:.3':''}>${ICON.down}</button></span>
+      <span class="chev">${ICON.chevR}</span></div>`;}).join('');
+  return `<div class="view"><div class="eyebrow">Poems — in order</div>
+    ${S.poems.length?rows:`<div class="empty"><div class="mk">No poems yet.</div><p>Start the collection. Poems keep the order you set here — the shape of the eventual book.</p></div>`}
+    <button class="btn gold" style="width:100%;margin-top:6px" data-act="addPoem">${ICON.plus} New poem</button></div>`;
+}
+function poemPage(){
+  const p=S.poems.find(x=>x.id===S.ui.openPoem);if(!p){go('poems');return;}
+  const words=((p.body||'').trim().match(/\S+/g)||[]).length;
+  const statusChips=POEM_STATUS.map(st=>`<button class="chip ${p.status===st?'on':''}" data-act="poemStatus" data-v="${st}">${st}</button>`).join('');
+  const themeChips=S.ptthemes.map(t=>`<button class="chip ${(p.themes||[]).includes(t.id)?'on':''}" data-act="poemTheme" data-id="${t.id}">${esc(t.name||'theme')}</button>`).join('')+`<button class="chip add" data-act="newPtTheme">+ new</button>`;
+  const moodChips=POEM_MOODS.map(m=>`<button class="chip sub ${(p.mood||[]).includes(m)?'on':''}" data-act="poemMood" data-v="${m}">${m}</button>`).join('')+(p.mood||[]).filter(m=>!POEM_MOODS.includes(m)).map(m=>`<button class="chip sub on" data-act="poemMood" data-v="${esc(m)}">${esc(m)}</button>`).join('')+`<button class="chip sub add" data-act="poemMoodCustom">+ custom</button>`;
+  const motifChips=POEM_MOTIFS.map(m=>`<button class="chip sub ${(p.motifs||[]).includes(m)?'on':''}" data-act="poemMotif" data-v="${m}">${m}</button>`).join('')+(p.motifs||[]).filter(m=>!POEM_MOTIFS.includes(m)).map(m=>`<button class="chip sub on" data-act="poemMotif" data-v="${esc(m)}">${esc(m)}</button>`).join('')+`<button class="chip sub add" data-act="poemMotifCustom">+ custom</button>`;
+  const sectionChips=S.sections.map(sec=>`<button class="chip ${p.section===sec.id?'on':''}" data-act="poemSection" data-id="${sec.id}">${esc(sec.name||'section')}</button>`).join('')+(p.section?`<button class="chip add" data-act="poemSection" data-id="">none</button>`:'')+`<button class="chip add" data-act="newSection">+ new</button>`;
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goPoems">${ICON.back} Poems</button><span style="margin-left:auto"></span><button class="iconbtn" data-act="delPoemOne">${ICON.trash}</button></div>
+    <div class="view">
+      <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0;margin-bottom:6px" value="${esc(p.title)}" data-act="poemTitle" placeholder="Title">
+      <button class="chapter-card" data-act="openEd" data-kind="poem" data-id="${p.id}" data-field="body">
+        ${(p.body||'').trim()?`<div class="cc-prev" style="white-space:pre-wrap">${esc((p.body||'').trim())}</div>`:`<div class="cc-empty">Write the poem — tap to open the full-screen editor.</div>`}
+        <div class="cc-meta">${ICON.expand}<span>${words?words+' words':'full-screen editor'}</span></div>
+      </button>
+      <div class="field" style="margin-top:16px"><label>Status</label><div class="chip-pick">${statusChips}</div></div>
+      <div class="field"><label>Themes</label><div class="chip-pick">${themeChips}</div></div>
+      <div class="field"><label>Mood / tone (optional)</label><div class="chip-pick">${moodChips}</div></div>
+      <div class="field"><label>Motifs / imagery (optional)</label><div class="chip-pick">${motifChips}</div></div>
+      <div class="field"><label>Section (optional)</label><div class="chip-pick">${sectionChips}</div></div>
+    </div>`;
+  renderPoetryNav('poemOne');bind();save();
+}
+function fragmentsView(){
+  const rows=S.fragments.map(fr=>{const from=fr.fromPoem&&S.poems.find(p=>p.id===fr.fromPoem);
+    return `<div class="slip"><div class="txt" style="white-space:pre-wrap">${esc(fr.text)}</div><div class="when">${from?'from \u201c'+esc(from.title||'Untitled')+'\u201d':'saved'}</div></div>`;}).join('');
+  return `<div class="view"><div class="hint" style="margin:4px 0 14px">Good lines that don't belong in the current poem — saved, not deleted. Saving from a poem and inserting into another arrives in the next update.</div>
+    <div class="eyebrow">Fragments</div>
+    ${S.fragments.length?rows:`<div class="empty"><div class="mk">No fragments yet.</div><p>When you write a line you love that doesn't fit, you'll save it here instead of losing it.</p></div>`}</div>`;
+}
+function ptThemesView(){
+  const rows=S.ptthemes.map(t=>{const n=S.poems.filter(p=>(p.themes||[]).includes(t.id)).length;
+    return `<div class="row"><div class="swatch" style="background:var(--raised2);color:var(--gold)">${ICON.mask}</div><div style="flex:1;min-width:0"><div class="rt">${esc(t.name||'Untitled')}</div><div class="rs">${n} poem${n!==1?'s':''}</div></div><button class="conn-del" data-act="delPtTheme" data-id="${t.id}">${ICON.x}</button></div>`;}).join('');
+  return `<div class="view"><div class="eyebrow">Themes</div>
+    <div class="hint" style="margin-bottom:10px">Reusable themes across the collection — grief, home, memory. Add them here or from a poem.</div>${rows}
+    <button class="btn gold" style="width:100%;margin-top:6px" data-act="addPtTheme">${ICON.plus} New theme</button></div>`;
 }
 
 /* ---------------- SPINE ---------------- */
@@ -832,10 +922,35 @@ function filterBar(){
   let b='<div class="focusbar" style="padding-top:0">';
   if(f){const t=(f.kind==='thread'?S.threads:S.themes).find(x=>x.id===f.id);
     if(t){b+=`<button class="chip on" data-act="filterClear" style="${t.color?`background:${t.color};color:#1a1626`:''}">${f.kind}: ${esc(t.name)} ✕</button>`;}}
+  b+=`<button class="chip" data-act="goIdeas">${ICON.feather} Ideas</button>`;
   b+=`<button class="chip" data-act="goThreads">${ICON.branch} Threads</button>`;
   b+=`<button class="chip" data-act="goThemes">${ICON.mask} Themes</button>`;
   b+=`<button class="chip" data-act="goBalance">${ICON.balance} Balance</button>`;
   return b+'</div>';
+}
+function ideasView(){
+  const rows=S.ideas.map((n,i)=>`<div class="row" data-act="openIdea" data-id="${n.id}"><div class="swatch" style="background:var(--raised2);color:var(--gold)">${ICON.feather}</div>
+    <div style="flex:1;min-width:0"><div class="rt">${esc(n.title||'Untitled note')}</div><div class="rs">${n.body?esc(n.body.trim().slice(0,64)):'empty'}</div></div>
+    <span class="ms-tools" style="flex:none"><button data-act="ideaUp" data-id="${n.id}" ${i===0?'disabled style=opacity:.3':''}>${ICON.up}</button><button data-act="ideaDown" data-id="${n.id}" ${i===S.ideas.length-1?'disabled style=opacity:.3':''}>${ICON.down}</button><button data-act="delIdea" data-id="${n.id}">${ICON.trash}</button></span>
+    <span class="chev">${ICON.chevR}</span></div>`).join('');
+  return `<div class="view">
+    <div class="hint" style="margin:4px 0 14px">Loose plot thinking — premise mechanics, thematic tensions, reveals, half-formed ideas. Not scenes, not world rules; just a place to think it through.</div>
+    <div class="eyebrow">Plot & ideas</div>
+    ${S.ideas.length?rows:`<div class="empty"><div class="mk">Nothing here yet.</div><p>Somewhere to work out how the story actually works — the logic, the twists, the tensions you're chewing on.</p></div>`}
+    <button class="btn gold" style="width:100%;margin-top:6px" data-act="addIdea">${ICON.plus} New note</button></div>`;
+}
+function ideaPage(){
+  const n=(S.ideas||[]).find(x=>x.id===S.ui.openIdea);if(!n){go('ideas');return;}
+  const words=((n.body||'').trim().match(/\S+/g)||[]).length;
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goIdeas">${ICON.back} Ideas</button><span style="margin-left:auto"></span><button class="iconbtn" data-act="delIdeaOne">${ICON.trash}</button></div>
+    <div class="view">
+      <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0;margin-bottom:8px" value="${esc(n.title)}" data-act="ideaTitle" placeholder="Name this note">
+      <button class="chapter-card" data-act="openEd" data-kind="idea" data-id="${n.id}" data-field="body">
+        ${(n.body||'').trim()?`<div class="cc-prev">${esc((n.body||'').trim())}</div>`:`<div class="cc-empty">Write it out — tap to open the full-screen editor.</div>`}
+        <div class="cc-meta">${ICON.expand}<span>${words?words+' words':'full-screen editor'}</span></div>
+      </button>
+    </div>`;
+  renderNav();bind();save();
 }
 function balanceView(){
   const flat=flatScenes();
@@ -1398,6 +1513,7 @@ function worldOrgs(){
 function worldRules(){
   const rows=S.rules.map(r=>`<div class="rule-card">
     <div class="rule-top"><span class="rule-txt" data-act="editRule" data-id="${r.id}">${esc(r.text||'untitled rule')}</span><button class="conn-del" data-act="delRule" data-id="${r.id}">${ICON.x}</button></div>
+    <button class="btn sm ghost" data-act="ruleToIdea" data-id="${r.id}" style="margin-top:8px;padding:3px 9px">${ICON.feather} Move to Plot & Ideas</button>
     <div class="chip-pick" style="margin-top:9px">${(r.scenes||[]).map(sid=>{const s=S.scenes.find(x=>x.id===sid);return s?`<span class="chip">${esc((s.gist||'scene').slice(0,20))}<button data-act="unlinkRuleScene" data-id="${r.id}" data-s="${sid}" style="margin-left:5px;color:var(--faint)">✕</button></span>`:'';}).join('')}<button class="chip add" data-act="linkRuleScene" data-id="${r.id}">+ scene</button></div></div>`).join('');
   return `<div class="eyebrow">Rules of the world</div><div class="hint" style="margin-bottom:10px">Laws, limits, and costs — what magic or power can and can't do. A rule with a price feels real.</div>${rows}
     <button class="btn gold" style="width:100%;margin-top:6px" data-act="addRule">${ICON.plus} New rule</button>`;
@@ -1671,9 +1787,11 @@ function relPage(){
 
 /* ---------------- NAV ---------------- */
 function renderNav(){
+  const _ap=activeProject();
+  if(_ap&&_ap.type==='poetry')return renderPoetryNav(S.ui.view);
   const v=S.ui.view;
   const map=[['spine','Spine',ICON.spineN],['capture','Catch',ICON.featherN],['cast','Cast',ICON.cast],['world','World',ICON.world]];
-  const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'||v==='themes'||v==='themeOne'||v==='threads'||v==='threadOne'||v==='dlgOne'?'spine':(v==='heat'||v==='rels'||v==='relOne'||v==='dialogue'?'cast':v))));
+  const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'||v==='themes'||v==='themeOne'||v==='threads'||v==='threadOne'||v==='dlgOne'||v==='ideas'||v==='ideaOne'?'spine':(v==='heat'||v==='rels'||v==='relOne'||v==='dialogue'?'cast':v))));
   document.getElementById('nav').innerHTML=`<div class="nav-inner">${map.map(([k,lab,ic])=>`<button data-act="nav" data-v="${k}" class="${active===k?'on':''}">${ic}${k==='capture'&&S.slips.length?`<span class="badge">${S.slips.length}</span>`:''}<span>${lab}</span></button>`).join('')}</div>`;
 }
 
@@ -1715,7 +1833,9 @@ document.getElementById('sheet').onclick=handleClick;
 let EDIT=null;
 function editorTarget(kind,id,field){
   if(kind==='locfacet'){const parts=(field||'').split(':');const L=locById(id);if(!L)return {obj:null,field,title:''};L.facets=L.facets||{};L.facets[parts[0]]=L.facets[parts[0]]||{};return {obj:L.facets[parts[0]],field:parts[1],title:'Place'};}
+  if(kind==='idea'){const n=(S.ideas||[]).find(x=>x.id===id);if(!n)return {obj:null,field,title:''};return {obj:n,field,title:'Idea'};}
   if(kind==='wound'){const cc=charById(S.ui.openCast);const w=cc&&cc.wounds.find(x=>x.id===id);if(!w)return {obj:null,field,title:''};return {obj:w,field,title:'Wound'};}
+  if(kind==='poem'){const p=(S.poems||[]).find(x=>x.id===id);if(!p)return {obj:null,field,title:''};return {obj:p,field,title:'Poem'};}
   let obj=null,title='';
   if(kind==='scene'){obj=S.scenes.find(x=>x.id===id);title='The scene';}
   else if(kind==='theme'){obj=S.themes.find(x=>x.id===id);title='Theme';}
@@ -1879,6 +1999,23 @@ function handleClick(e){
     case 'openProject':closeSheet();openProjectById(id);render();window.scrollTo(0,0);break;
     case 'newProject':newProjectSheet();break;
     case 'createProject':createProject(el.dataset.t);break;
+    case 'goPoems':go('poems');break;
+    case 'openPoem':S.ui.openPoem=el.dataset.id;go('poemOne');break;
+    case 'addPoem':{const p={id:uid(),title:'',body:'',status:'Draft',themes:[],mood:[],motifs:[],section:null,annotations:[],t:Date.now()};S.poems.push(p);S.ui.openPoem=p.id;go('poemOne');break;}
+    case 'delPoemOne':{const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p&&confirm('Delete this poem?')){S.poems=S.poems.filter(x=>x.id!==S.ui.openPoem);go('poems');}break;}
+    case 'poemUp':{const i=S.poems.findIndex(x=>x.id===el.dataset.id);if(i>0){const t=S.poems[i-1];S.poems[i-1]=S.poems[i];S.poems[i]=t;render();}break;}
+    case 'poemDown':{const i=S.poems.findIndex(x=>x.id===el.dataset.id);if(i>=0&&i<S.poems.length-1){const t=S.poems[i+1];S.poems[i+1]=S.poems[i];S.poems[i]=t;render();}break;}
+    case 'poemStatus':{const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p){p.status=el.dataset.v;render();}break;}
+    case 'poemTheme':{const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p){p.themes=p.themes||[];togID(p.themes,el.dataset.id);render();}break;}
+    case 'newPtTheme':askText('New theme','',n=>{const t={id:uid(),name:n};S.ptthemes.push(t);const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p){p.themes=p.themes||[];p.themes.push(t.id);}render();});break;
+    case 'poemMood':{const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p){p.mood=p.mood||[];togID(p.mood,el.dataset.v);render();}break;}
+    case 'poemMoodCustom':askText('Add a mood','',v=>{const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p){p.mood=p.mood||[];if(!p.mood.includes(v))p.mood.push(v);}render();});break;
+    case 'poemMotif':{const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p){p.motifs=p.motifs||[];togID(p.motifs,el.dataset.v);render();}break;}
+    case 'poemMotifCustom':askText('Add a motif','',v=>{const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p){p.motifs=p.motifs||[];if(!p.motifs.includes(v))p.motifs.push(v);}render();});break;
+    case 'poemSection':{const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p){p.section=el.dataset.id||null;render();}break;}
+    case 'newSection':askText('New section','',n=>{const sec={id:uid(),name:n};S.sections.push(sec);const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p)p.section=sec.id;render();});break;
+    case 'addPtTheme':askText('New theme','',n=>{S.ptthemes.push({id:uid(),name:n});render();});break;
+    case 'delPtTheme':{const id=el.dataset.id;if(confirm('Delete this theme?')){S.ptthemes=S.ptthemes.filter(x=>x.id!==id);S.poems.forEach(p=>{p.themes=(p.themes||[]).filter(x=>x!==id);});render();}break;}
     case 'renameProject':{stop();const pr=LIB.projects.find(x=>x.id===id);if(pr)askText('Rename project',pr.name,n=>{pr.name=n;persistLib();render();});break;}
     case 'projUp':stop();moveProject(id,-1);break;
     case 'projDown':stop();moveProject(id,1);break;
@@ -1941,6 +2078,14 @@ function handleClick(e){
     case 'goBalance':go('balance');break;
     case 'goThemes':go('themes');break;
     case 'goThreads':go('threads');break;
+    case 'goIdeas':go('ideas');break;
+    case 'openIdea':S.ui.openIdea=el.dataset.id;go('ideaOne');break;
+    case 'addIdea':{const n={id:uid(),title:'',body:'',t:Date.now()};S.ideas.push(n);S.ui.openIdea=n.id;go('ideaOne');break;}
+    case 'delIdea':{const n=S.ideas.find(x=>x.id===el.dataset.id);if(n&&confirm(`Delete note "${n.title||'Untitled'}"?`)){S.ideas=S.ideas.filter(x=>x.id!==el.dataset.id);render();}break;}
+    case 'delIdeaOne':{const n=S.ideas.find(x=>x.id===S.ui.openIdea);if(n&&confirm(`Delete note "${n.title||'Untitled'}"?`)){S.ideas=S.ideas.filter(x=>x.id!==S.ui.openIdea);go('ideas');}break;}
+    case 'ideaUp':{const i=S.ideas.findIndex(x=>x.id===el.dataset.id);if(i>0){const t=S.ideas[i-1];S.ideas[i-1]=S.ideas[i];S.ideas[i]=t;render();}break;}
+    case 'ideaDown':{const i=S.ideas.findIndex(x=>x.id===el.dataset.id);if(i>=0&&i<S.ideas.length-1){const t=S.ideas[i+1];S.ideas[i+1]=S.ideas[i];S.ideas[i]=t;render();}break;}
+    case 'ruleToIdea':{const r=S.rules.find(x=>x.id===el.dataset.id);if(r){const first=(r.text||'').split(/\n/)[0].slice(0,50);S.ideas.push({id:uid(),title:first||'From rules',body:r.text||'',t:Date.now()});S.rules=S.rules.filter(x=>x.id!==r.id);render();}break;}
     case 'openThread':S.ui.openThread=el.dataset.id;go('threadOne');break;
     case 'addThread':{const t={id:uid(),name:'New thread',desc:'',color:PAL[S.threads.length%PAL.length],books:[],chars:[]};S.threads.push(t);S.ui.openThread=t.id;go('threadOne');break;}
     case 'delThread':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t&&confirm(`Delete thread "${t.name}"? Scenes keep their text — they just lose this tag.`)){S.scenes.forEach(s=>{if(s.threads)s.threads=s.threads.filter(id=>id!==t.id);});S.threads=S.threads.filter(x=>x.id!==S.ui.openThread);go('threads');}break;}
@@ -2088,6 +2233,8 @@ function handleInput(e){
     case 'facetProse':{const l=locById(S.ui.openLoc);if(l){l.facets=l.facets||{};l.facets[el.dataset.fk]=l.facets[el.dataset.fk]||{};l.facets[el.dataset.fk][el.dataset.lk]=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'dlgSubtext':if(dlgDraft){dlgDraft.subtext=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';}break;
     case 'dlgNotes':if(dlgDraft){dlgDraft.notes=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';}break;
+    case 'ideaTitle':{const n=(S.ideas||[]).find(x=>x.id===S.ui.openIdea);if(n){n.title=el.value;save();}break;}
+    case 'poemTitle':{const p=(S.poems||[]).find(x=>x.id===S.ui.openPoem);if(p){p.title=el.value;save();}break;}
     case 'themeName':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.name=el.value;save();}break;}
     case 'themeDesc':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.desc=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'threadName':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){t.name=el.value;save();}break;}
