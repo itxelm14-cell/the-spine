@@ -358,6 +358,15 @@
   .dlg-tag{font-size:10px;font-family:var(--mono);color:var(--gold);background:var(--gold-dim);border-radius:5px;padding:1px 6px}
   .dlg-tag.pp{color:var(--muted);background:var(--raised)}
   #edovToggle{margin-left:auto}
+  .convo{background:var(--surface);border:1px solid var(--border-soft);border-radius:13px;padding:12px 14px;margin-bottom:12px}
+  .convo-head{margin-bottom:9px}
+  .convo-parts{font-family:var(--serif);font-size:17px;font-weight:600}
+  .convo-scene{font-size:12px;color:var(--muted);margin-top:1px}
+  .script{display:flex;flex-direction:column;gap:8px}
+  .scriptline{display:flex;flex-direction:column;gap:1px}
+  .scriptwho{font-size:11px;font-weight:700;letter-spacing:.03em}
+  .scripttext{font-family:var(--serif);font-size:16px;line-height:1.32}
+  .script-scene{font-size:10px;color:var(--faint);font-family:var(--mono);margin-top:1px}
   .edov-read{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px 18px calc(40px + env(safe-area-inset-bottom));font-family:var(--serif);font-size:19px;line-height:1.55;color:var(--ink);-webkit-user-select:none;user-select:none}
   .dlg-mark{background:var(--gold-dim);border-bottom:2px solid var(--gold);border-radius:4px;cursor:pointer;padding:1px 3px;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:var(--gold-dim)}
   .dlg-mark:active{background:var(--gold-dim)}
@@ -699,15 +708,16 @@ function render(){
   if(v==='locOne')return locPage();
   if(v==='themeOne')return themeOne();
   if(v==='threadOne')return threadOne();
-  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView,threads:threadsView}[v]||viewSpine)();
+  if(v==='dlgOne')return dlgPage();
+  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView,threads:threadsView,dialogue:dlgHubView}[v]||viewSpine)();
   renderNav();bind();
   if(v==='spine'){drawRail();requestAnimationFrame(drawRail);setTimeout(drawRail,260);}
   if(v==='compare'){requestAnimationFrame(drawCompare);setTimeout(drawCompare,80);setTimeout(drawCompare,300);}
   save();
 }
 function topbar(){
-  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme',threads:'Storylines',threadOne:'A thread'};
-  const parent={compare:'spine',balance:'spine',themes:'spine',threads:'spine',heat:'cast',rels:'cast',web:'cast'};
+  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme',threads:'Storylines',threadOne:'A thread',dialogue:'Dialogue'};
+  const parent={compare:'spine',balance:'spine',themes:'spine',threads:'spine',heat:'cast',rels:'cast',web:'cast',dialogue:'cast'};
   const par=parent[S.ui.view];
   const back=par
     ?`<button class="iconbtn" data-act="nav" data-v="${par}" aria-label="Back" style="flex:none">${ICON.back}</button>`
@@ -1126,6 +1136,54 @@ function sceneEditor(){
 }
 
 /* ---------------- CAST ---------------- */
+function emptyDlg(){return `<div class="empty"><div class="mk">No dialogue yet.</div><p>Mark lines inside your scenes — open a scene's text, select a line, and tap the + Dialogue button.</p></div>`;}
+function allDialogueOrdered(){const order=flatScenes();let out=[];order.forEach(sc=>{(S.dialogue||[]).filter(d=>d.scene===sc.id).sort((a,b)=>(a.start||0)-(b.start||0)).forEach(d=>out.push({d,scene:sc}));});return out;}
+function scriptLines(lines,withScene){return lines.map(function(item){const l=item.d||item;const scene=item.scene;const sp=charById(l.speaker);
+  return `<div class="scriptline" ${scene?`data-act="openScene" data-id="${scene.id}"`:''}><span class="scriptwho" style="color:${sp?sp.color:'var(--muted)'}">${sp?esc(sp.name):'\u2014'}</span><span class="scripttext">\u201c${esc(l.text)}\u201d</span>${withScene&&scene?`<span class="script-scene">${esc((scene.gist||'untitled').slice(0,20))}</span>`:''}</div>`;}).join('');}
+function dlgHubView(){
+  const tab=S.ui.dlgTab||'conversations';
+  const seg=[['characters','Characters'],['conversations','Conversations'],['scenes','Scenes']].map(([k,l])=>`<button class="seg ${tab===k?'on':''}" data-act="dlgTab" data-t="${k}">${l}</button>`).join('');
+  const body=tab==='characters'?dlgHubCharacters():tab==='scenes'?dlgHubScenes():dlgHubConversations();
+  return `<div class="view"><div class="seg-row">${seg}</div>${body}</div>`;
+}
+function dlgHubConversations(){
+  const order=flatScenes().filter(sc=>(S.dialogue||[]).some(d=>d.scene===sc.id));
+  if(!order.length)return emptyDlg();
+  return order.map(sc=>{
+    const lines=(S.dialogue||[]).filter(d=>d.scene===sc.id).sort((a,b)=>(a.start||0)-(b.start||0));
+    const parts=[...new Set(lines.reduce((acc,l)=>acc.concat([l.speaker],l.recipients||[]),[]).filter(x=>x&&x!==DLG_GROUP))];
+    const partNames=parts.map(id=>charById(id)&&charById(id).name).filter(Boolean).join(' + ');
+    const tones=[...new Set(lines.reduce((a,l)=>a.concat(l.tone||[]),[]))];
+    const purps=[...new Set(lines.reduce((a,l)=>a.concat(l.purpose||[]),[]))];
+    return `<div class="convo"><div class="convo-head" data-act="openScene" data-id="${sc.id}"><div class="convo-parts">${esc(partNames||'\u2014')}</div><div class="convo-scene">${esc(bookById(sc.book)&&bookById(sc.book).name||'')} \u00b7 ${esc((sc.gist||'untitled').slice(0,28))}</div></div>
+      <div class="script">${scriptLines(lines,false)}</div>
+      ${(tones.length||purps.length)?`<div class="dlg-tags" style="margin-top:9px">${tones.map(t=>`<span class="dlg-tag">${esc(t)}</span>`).join('')}${purps.map(p=>`<span class="dlg-tag pp">${esc(p)}</span>`).join('')}</div>`:''}</div>`;
+  }).join('');
+}
+function dlgHubScenes(){
+  const scs=flatScenes().filter(sc=>(S.dialogue||[]).some(d=>d.scene===sc.id));
+  if(!scs.length)return emptyDlg();
+  const sel=(S.ui.dlgScene&&scs.find(x=>x.id===S.ui.dlgScene))?S.ui.dlgScene:scs[0].id;
+  const picker=scs.map(sc=>`<button class="chip ${sel===sc.id?'on':''}" data-act="dlgPickScene" data-id="${sc.id}">${esc((sc.gist||'untitled').slice(0,22))}</button>`).join('');
+  const lines=(S.dialogue||[]).filter(d=>d.scene===sel).sort((a,b)=>(a.start||0)-(b.start||0));
+  const scene=S.scenes.find(x=>x.id===sel);
+  return `<div class="chip-pick" style="margin-bottom:14px">${picker}</div>
+    <div class="convo"><div class="convo-head" data-act="openScene" data-id="${sel}"><div class="convo-scene">${esc(bookById(scene&&scene.book)&&bookById(scene.book).name||'')} \u00b7 ${esc((scene&&scene.gist||'').slice(0,30))}</div></div><div class="script">${scriptLines(lines,false)||'<div class=\'hint\'>No dialogue in this scene.</div>'}</div></div>`;
+}
+function dlgHubCharacters(){
+  if(!S.characters.length)return emptyDlg();
+  const cur=(S.ui.dlgChar&&charById(S.ui.dlgChar))?S.ui.dlgChar:S.characters[0].id;
+  const withOn=S.ui.dlgWith&&charById(S.ui.dlgWith)&&S.ui.dlgWith!==cur;
+  const picker=S.characters.map(c=>`<button class="chip ${cur===c.id?'on':''}" data-act="dlgPickChar" data-id="${c.id}" style="${cur===c.id?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('');
+  const withOpts=S.characters.filter(c=>c.id!==cur).map(c=>`<button class="chip sub ${S.ui.dlgWith===c.id?'on':''}" data-act="dlgPickWith" data-id="${c.id}" style="${S.ui.dlgWith===c.id?`background:${c.color};color:#1a1626`:''}">${esc(c.name)}</button>`).join('');
+  let items=allDialogueOrdered();
+  if(withOn){items=items.filter(({d})=>{const set=new Set([d.speaker].concat(d.recipients||[]));return set.has(cur)&&set.has(S.ui.dlgWith);});}
+  else{items=items.filter(({d})=>d.speaker===cur||(d.recipients||[]).includes(cur));}
+  const script=scriptLines(items,true)||'<div class="hint">No dialogue yet for this character.</div>';
+  return `<div class="slip-lbl">Character</div><div class="chip-pick" style="margin-bottom:10px">${picker}</div>
+    <div class="slip-lbl">With (optional)</div><div class="chip-pick" style="margin-bottom:14px">${withOpts||'<span class="hint">no others yet</span>'}${withOn?`<button class="chip sub" data-act="dlgClearWith">clear</button>`:''}</div>
+    <div class="convo"><div class="script">${script}</div></div>`;
+}
 function viewCast(){
   const rows=S.characters.map(c=>{const role=txt(c.attrs?.role);
     return `<div class="row" data-act="openChar" data-id="${c.id}"><div class="swatch" style="background:${c.color}">${esc(initials(c.name))}</div>
@@ -1135,7 +1193,8 @@ function viewCast(){
     ${S.characters.length?rows:`<div class="empty"><div class="mk">No one yet.</div><p>Add the people the story is about. Each carries their own arcs down the spine.</p></div>`}
     <button class="btn gold" style="width:100%;margin-top:6px" data-act="addChar">${ICON.plus} New character</button>
     ${S.characters.length?`<button class="btn ghost" style="width:100%;margin-top:8px" data-act="goHeat">${ICON.cast} Who's in what — heatmap</button>`:''}
-    ${S.characters.length>1?`<button class="btn ghost" style="width:100%;margin-top:8px" data-act="goRels">${ICON.branch} Relationships</button>`:''}</div>`;
+    ${S.characters.length>1?`<button class="btn ghost" style="width:100%;margin-top:8px" data-act="goRels">${ICON.branch} Relationships</button>`:''}
+    ${(S.dialogue||[]).length?`<button class="btn ghost" style="width:100%;margin-top:8px" data-act="goDialogueHub">${ICON.speech} Dialogue</button>`:''}</div>`;
 }
 function catHTML(cat,palettes,attrs){
   const opts=palettes[cat.key]||[];const val=attrs[cat.key];
@@ -1585,7 +1644,7 @@ function relPage(){
 function renderNav(){
   const v=S.ui.view;
   const map=[['spine','Spine',ICON.spineN],['capture','Catch',ICON.featherN],['cast','Cast',ICON.cast],['world','World',ICON.world]];
-  const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'||v==='themes'||v==='themeOne'||v==='threads'||v==='threadOne'?'spine':(v==='heat'||v==='rels'||v==='relOne'?'cast':v))));
+  const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'||v==='themes'||v==='themeOne'||v==='threads'||v==='threadOne'||v==='dlgOne'?'spine':(v==='heat'||v==='rels'||v==='relOne'||v==='dialogue'?'cast':v))));
   document.getElementById('nav').innerHTML=`<div class="nav-inner">${map.map(([k,lab,ic])=>`<button data-act="nav" data-v="${k}" class="${active===k?'on':''}">${ic}${k==='capture'&&S.slips.length?`<span class="badge">${S.slips.length}</span>`:''}<span>${lab}</span></button>`).join('')}</div>`;
 }
 
@@ -1671,13 +1730,17 @@ function edMarkDialogue(){
   const lead=raw.length-raw.replace(/^\s+/,'').length, trail=raw.length-raw.replace(/\s+$/,'').length;
   openDialogCard({scene:EDIT.id,start:s0+lead,end:s1-trail,text});
 }
+let dlgFromEditor=false;
 function openDialogCard(seed){
   if(seed&&seed.id){dlgDraft=Object.assign({recipients:[],tone:[],purpose:[]},JSON.parse(JSON.stringify(seed)));}
   else{dlgDraft={scene:seed.scene,start:seed.start,end:seed.end,text:seed.text,speaker:null,recipients:[],tone:[],purpose:[]};}
-  dialogCard();
+  dlgFromEditor=document.getElementById('edov').classList.contains('show');
+  if(dlgDraft&&dlgDraft.scene)S.ui.editScene=dlgDraft.scene;
+  if(dlgFromEditor){document.getElementById('edov').classList.remove('show');EDIT=null;edovMode='write';}
+  go('dlgOne');
 }
-function dialogCard(){
-  const d=dlgDraft;if(!d)return;
+function dlgPage(){
+  const d=dlgDraft;if(!d){go('scene');return;}
   const sc=S.scenes.find(x=>x.id===d.scene);const cast=(sc&&sc.characters)||[];
   const castChars=cast.map(charById).filter(Boolean);
   const otherChars=S.characters.filter(c=>!cast.includes(c.id));
@@ -1690,22 +1753,30 @@ function dialogCard(){
     +`<button class="chip sub add" data-act="dlgToneCustom">+ custom</button>`;
   const purps=DLG_PURPOSES.map(p=>`<button class="chip sub ${d.purpose.includes(p)?'on':''}" data-act="dlgPurpose" data-v="${p}">${p}</button>`).join('');
   const groupOn=d.recipients.includes(DLG_GROUP);
-  openSheet(`<h3>${d.id?'Edit dialogue':'Mark dialogue'}</h3>
-    <div class="prompt" style="margin-bottom:14px">“${esc(d.text)}”</div>
-    <div class="slip-lbl">Speaker — who said it</div>
-    <div class="chip-pick" style="margin-bottom:10px">${anyChar?spk(castChars)+spk(otherChars):'<span class="hint">No characters yet — add some in Cast.</span>'}</div>
-    <div class="slip-lbl">To — who they're speaking to</div>
-    <div class="chip-pick" style="margin-bottom:10px">${rcp(castChars)}${rcp(otherChars)}<button class="chip ${groupOn?'on':''}" data-act="dlgRecip" data-id="${DLG_GROUP}">Everyone / group</button></div>
-    <div class="slip-lbl">Tone</div><div class="chip-pick" style="margin-bottom:10px">${tones}</div>
-    <div class="slip-lbl">Purpose</div><div class="chip-pick">${purps}</div>
-    <div style="display:flex;gap:9px;margin-top:16px">${d.id?'<button class="btn ghost danger sm" data-act="dlgDelete">Delete</button>':''}<button class="btn ghost" data-act="askCancel" style="flex:1">Cancel</button><button class="btn gold" data-act="dlgSave" style="flex:1">Save</button></div>`);
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="dlgCancel">${ICON.back} Back</button><span style="margin-left:auto"></span>${d.id?`<button class="iconbtn" data-act="dlgDelete">${ICON.trash}</button>`:''}</div>
+    <div class="view">
+      <div class="eyebrow">${d.id?'Edit dialogue':'Mark dialogue'}</div>
+      <div class="prompt" style="margin-bottom:16px">\u201c${esc(d.text)}\u201d</div>
+      <div class="field"><label>Speaker — who said it</label><div class="chip-pick">${anyChar?spk(castChars)+spk(otherChars):'<span class="hint">No characters yet — add some in Cast.</span>'}</div></div>
+      <div class="field"><label>To — who they're speaking to</label><div class="chip-pick">${rcp(castChars)}${rcp(otherChars)}<button class="chip ${groupOn?'on':''}" data-act="dlgRecip" data-id="${DLG_GROUP}">Everyone / group</button></div></div>
+      <div class="field"><label>Tone</label><div class="chip-pick">${tones}</div></div>
+      <div class="field"><label>Purpose</label><div class="chip-pick">${purps}</div></div>
+      <button class="btn gold" style="width:100%;margin-top:6px" data-act="dlgSave">Save dialogue</button>
+    </div>`;
+  renderNav();bind();save();
 }
+function dlgReturn(sid){
+  const fromEd=dlgFromEditor;dlgFromEditor=false;dlgDraft=null;save();
+  if(sid)S.ui.editScene=sid;
+  go('scene');
+  if(fromEd&&sid){openEditor('scene',sid,'body');setTimeout(function(){edovSetMode('read');},90);}
+}
+function dlgCancel(){const sid=dlgDraft&&dlgDraft.scene;dlgReturn(sid);}
 function dlgSave(){
-  const d=dlgDraft;if(!d)return;
+  const d=dlgDraft;if(!d)return;const sid=d.scene;
   if(d.id){const rec=S.dialogue.find(x=>x.id===d.id);if(rec)Object.assign(rec,{speaker:d.speaker,recipients:d.recipients,tone:d.tone,purpose:d.purpose,text:d.text});}
   else{S.dialogue.push({id:uid(),scene:d.scene,start:d.start,end:d.end,text:d.text,speaker:d.speaker,recipients:d.recipients,tone:d.tone,purpose:d.purpose,subtext:'',woundLink:null,triggerLink:null,pattern:null,notes:'',t:Date.now()});}
-  dlgDraft=null;closeSheet();save();
-  if(!document.getElementById('edov').classList.contains('show'))render();else edovRefreshRead();
+  dlgReturn(sid);
 }
 function dlgSectionHTML(s){
   const dlgs=(S.dialogue||[]).filter(x=>x.scene===s.id).sort((a,b)=>(a.start||0)-(b.start||0));
@@ -1786,13 +1857,14 @@ function handleClick(e){
     case 'openScene':S.ui.editScene=id;go('scene');break;
     case 'openEd':openEditor(el.dataset.kind,el.dataset.id,el.dataset.field);break;
     case 'openDlg':{const dl=S.dialogue.find(x=>x.id===el.dataset.id);if(dl)openDialogCard(dl);break;}
-    case 'dlgSpeaker':if(dlgDraft){dlgDraft.speaker=(dlgDraft.speaker===el.dataset.id?null:el.dataset.id);dialogCard();}break;
-    case 'dlgRecip':if(dlgDraft){const i=dlgDraft.recipients.indexOf(el.dataset.id);i>=0?dlgDraft.recipients.splice(i,1):dlgDraft.recipients.push(el.dataset.id);dialogCard();}break;
-    case 'dlgTone':if(dlgDraft){togID(dlgDraft.tone,el.dataset.v);dialogCard();}break;
-    case 'dlgToneCustom':{const keep=dlgDraft;askText('Add a tone','',v=>{dlgDraft=keep;if(dlgDraft&&!dlgDraft.tone.includes(v))dlgDraft.tone.push(v);dialogCard();});break;}
-    case 'dlgPurpose':if(dlgDraft){togID(dlgDraft.purpose,el.dataset.v);dialogCard();}break;
+    case 'dlgSpeaker':if(dlgDraft){dlgDraft.speaker=(dlgDraft.speaker===el.dataset.id?null:el.dataset.id);dlgPage();}break;
+    case 'dlgRecip':if(dlgDraft){const i=dlgDraft.recipients.indexOf(el.dataset.id);i>=0?dlgDraft.recipients.splice(i,1):dlgDraft.recipients.push(el.dataset.id);dlgPage();}break;
+    case 'dlgTone':if(dlgDraft){togID(dlgDraft.tone,el.dataset.v);dlgPage();}break;
+    case 'dlgToneCustom':{const keep=dlgDraft;askText('Add a tone','',v=>{dlgDraft=keep;if(dlgDraft&&!dlgDraft.tone.includes(v))dlgDraft.tone.push(v);dlgPage();});break;}
+    case 'dlgPurpose':if(dlgDraft){togID(dlgDraft.purpose,el.dataset.v);dlgPage();}break;
     case 'dlgSave':dlgSave();break;
-    case 'dlgDelete':if(dlgDraft&&dlgDraft.id){S.dialogue=S.dialogue.filter(x=>x.id!==dlgDraft.id);dlgDraft=null;closeSheet();save();if(!document.getElementById('edov').classList.contains('show'))render();else edovRefreshRead();}break;
+    case 'dlgDelete':if(dlgDraft&&dlgDraft.id){const sid=dlgDraft.scene;S.dialogue=S.dialogue.filter(x=>x.id!==dlgDraft.id);dlgReturn(sid);}break;
+    case 'dlgCancel':dlgCancel();break;
     case 'scUp':stop();moveScene(id,-1);break;
     case 'scDown':stop();moveScene(id,1);break;
     /* capture */
@@ -1842,6 +1914,12 @@ function handleClick(e){
     case 'goCast':go('cast');break;
     case 'goHeat':go('heat');break;
     case 'goRels':go('rels');break;
+    case 'goDialogueHub':go('dialogue');break;
+    case 'dlgTab':S.ui.dlgTab=el.dataset.t;render();break;
+    case 'dlgPickChar':S.ui.dlgChar=el.dataset.id;S.ui.dlgWith=null;render();break;
+    case 'dlgPickWith':S.ui.dlgWith=el.dataset.id;render();break;
+    case 'dlgClearWith':S.ui.dlgWith=null;render();break;
+    case 'dlgPickScene':S.ui.dlgScene=el.dataset.id;render();break;
     case 'worldTab':S.ui.worldTab=el.dataset.t;render();break;
     case 'pickPick':{const cb=askCB;askCB=null;closeSheet();if(cb)cb(el.dataset.id);break;}
     case 'goWorldObjects':S.ui.worldTab='objects';go('world');break;
