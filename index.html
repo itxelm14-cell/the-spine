@@ -1138,6 +1138,33 @@ function sceneEditor(){
 /* ---------------- CAST ---------------- */
 function emptyDlg(){return `<div class="empty"><div class="mk">No dialogue yet.</div><p>Mark lines inside your scenes — open a scene's text, select a line, and tap the + Dialogue button.</p></div>`;}
 function allDialogueOrdered(){const order=flatScenes();let out=[];order.forEach(sc=>{(S.dialogue||[]).filter(d=>d.scene===sc.id).sort((a,b)=>(a.start||0)-(b.start||0)).forEach(d=>out.push({d,scene:sc}));});return out;}
+function relDialogueHTML(a,b){
+  const items=allDialogueOrdered().filter(({d})=>{const set=new Set([d.speaker].concat(d.recipients||[]));return set.has(a)&&set.has(b);});
+  if(!items.length)return `<div class="eyebrow">Dialogue</div><div class="hint" style="margin-bottom:8px">No tagged dialogue between them yet.</div>`;
+  const tones=[...new Set(items.reduce((x,{d})=>x.concat(d.tone||[]),[]))].slice(0,6);
+  const purps=[...new Set(items.reduce((x,{d})=>x.concat(d.purpose||[]),[]))].slice(0,6);
+  const first=items[0].scene,last=items[items.length-1].scene;
+  const lbl=sc=>esc((bookById(sc.book)&&bookById(sc.book).name||'')+' · '+((sc.gist||'untitled').slice(0,22)));
+  let h=`<div class="eyebrow">Dialogue</div><div class="stats">`;
+  h+=statRow('Exchanges',items.length)+statRow('First',lbl(first))+statRow('Latest',lbl(last));
+  if(tones.length)h+=statRow('Common tones',esc(tones.join(', ')));
+  if(purps.length)h+=statRow('Common purposes',esc(purps.join(', ')));
+  h+=`</div><button class="btn sm" data-act="dlgViewPair" data-a="${a}" data-b="${b}">${ICON.speech} View all dialogue</button>`;
+  return h;
+}
+function charDialogueHTML(cid){
+  const items=allDialogueOrdered().filter(({d})=>d.speaker===cid||(d.recipients||[]).includes(cid));
+  if(!items.length)return `<div class="eyebrow">Dialogue</div><div class="hint" style="margin-bottom:8px">No tagged dialogue yet.</div>`;
+  const asSpk=items.filter(({d})=>d.speaker===cid).length;const c=charById(cid);
+  const spoken=items.filter(({d})=>d.speaker===cid&&d.woundLink);
+  let byWound='';
+  (c.wounds||[]).forEach(w=>{const wl=spoken.filter(({d})=>d.woundLink===w.id);if(!wl.length)return;
+    byWound+=`<div class="slip-lbl" style="margin-top:10px">${esc(w.title||'wound')}</div>`+wl.map(({d,scene})=>`<div class="conn-row" data-act="openScene" data-id="${scene.id}"><span class="conn-lbl">${esc((bookById(scene.book)&&bookById(scene.book).name||'').slice(0,8))}</span><button class="conn-to" style="text-align:left">\u201c${esc((d.text||'').slice(0,32))}\u201d${d.pattern?` · ${esc(d.pattern)}`:''}</button></div>`).join('');
+  });
+  let h=`<div class="eyebrow">Dialogue</div><div class="stats">`+statRow('Lines',items.length)+statRow('As speaker',asSpk)+`</div><button class="btn sm" data-act="dlgViewChar" data-id="${cid}">${ICON.speech} View all dialogue</button>`;
+  if(byWound)h+=`<div class="hint" style="margin:10px 0 2px">Through their wounds — development in their own words:</div>${byWound}`;
+  return h;
+}
 function scriptLines(lines,withScene){return lines.map(function(item){const l=item.d||item;const scene=item.scene;const sp=charById(l.speaker);
   return `<div class="scriptline" ${scene?`data-act="openScene" data-id="${scene.id}"`:''}><span class="scriptwho" style="color:${sp?sp.color:'var(--muted)'}">${sp?esc(sp.name):'\u2014'}</span><span class="scripttext">\u201c${esc(l.text)}\u201d</span>${withScene&&scene?`<span class="script-scene">${esc((scene.gist||'untitled').slice(0,20))}</span>`:''}</div>`;}).join('');}
 function dlgHubView(){
@@ -1330,6 +1357,7 @@ function charPage(){
       ${wounds?`<div class="wounds">${wounds}</div>`:'<p class="hint" style="margin:0 0 10px">A wound is an old hurt that still shapes her — the reason she sometimes acts against her own nature.</p>'}
       <button class="btn" style="width:100%;margin-top:4px" data-act="addWound">${ICON.plus} Add a wound</button>
       ${presenceHTML(c.id)}
+      ${charDialogueHTML(c.id)}
       ${connSection('character',c.id)}
     </div>`;
   renderNav();bind();save();
@@ -1634,6 +1662,7 @@ function relPage(){
       <div class="eyebrow">Shared memories</div>${mems}
       <button class="btn sm" style="margin-top:4px" data-act="addMemory">${ICON.plus} Add a memory</button>
       <div class="eyebrow">Secrets — who knows what</div>${secretsFor(a)}${secretsFor(b)}
+      ${relDialogueHTML(a,b)}
       <div class="eyebrow">Influence</div>
       <input class="input" value="${esc(r.influence||'')}" data-act="relInfluence" placeholder="How has one changed the other?">
     </div>`;
@@ -1733,7 +1762,8 @@ function edMarkDialogue(){
 let dlgFromEditor=false;
 function openDialogCard(seed){
   if(seed&&seed.id){dlgDraft=Object.assign({recipients:[],tone:[],purpose:[]},JSON.parse(JSON.stringify(seed)));}
-  else{dlgDraft={scene:seed.scene,start:seed.start,end:seed.end,text:seed.text,speaker:null,recipients:[],tone:[],purpose:[]};}
+  else{dlgDraft={scene:seed.scene,start:seed.start,end:seed.end,text:seed.text,speaker:null,recipients:[],tone:[],purpose:[],subtext:'',woundLink:null,triggerLink:null,pattern:null,notes:''};}
+  S.ui.dlgMore=false;
   dlgFromEditor=document.getElementById('edov').classList.contains('show');
   if(dlgDraft&&dlgDraft.scene)S.ui.editScene=dlgDraft.scene;
   if(dlgFromEditor){document.getElementById('edov').classList.remove('show');EDIT=null;edovMode='write';}
@@ -1761,9 +1791,25 @@ function dlgPage(){
       <div class="field"><label>To — who they're speaking to</label><div class="chip-pick">${rcp(castChars)}${rcp(otherChars)}<button class="chip ${groupOn?'on':''}" data-act="dlgRecip" data-id="${DLG_GROUP}">Everyone / group</button></div></div>
       <div class="field"><label>Tone</label><div class="chip-pick">${tones}</div></div>
       <div class="field"><label>Purpose</label><div class="chip-pick">${purps}</div></div>
+      ${dlgMoreHTML(d)}
       <button class="btn gold" style="width:100%;margin-top:6px" data-act="dlgSave">Save dialogue</button>
     </div>`;
-  renderNav();bind();save();
+  renderNav();bind();root.querySelectorAll('[data-act="dlgSubtext"],[data-act="dlgNotes"]').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});save();
+}
+function dlgMoreHTML(d){
+  const open=S.ui.dlgMore;
+  const toggle=`<button class="btn ghost sm" data-act="dlgMore" style="width:100%;margin-top:2px">${open?'Hide extras':'More \u2014 subtext, wound, pattern'}</button>`;
+  if(!open)return toggle;
+  const spk=charById(d.speaker);const wounds=(spk&&spk.wounds)||[];
+  const wound=wounds.find(w=>w.id===d.woundLink);const trig=wound&&(wound.triggers||[]).find(t=>t.id===d.triggerLink);
+  const woundPick=wounds.length?`<div class="chip-pick">${wounds.map(w=>`<button class="chip ${d.woundLink===w.id?'on':''}" data-act="dlgWound" data-id="${w.id}">${esc(w.title||'untitled wound')}</button>`).join('')}${d.woundLink?`<button class="chip add" data-act="dlgWound" data-id="">clear</button>`:''}</div>`:`<div class="hint">${spk?esc(spk.name)+' has no wounds yet \u2014 add them on their page.':'Pick a speaker first.'}</div>`;
+  const trigPick=wound&&(wound.triggers||[]).length?`<div class="field"><label>Which trigger</label><div class="chip-pick">${wound.triggers.map(t=>`<button class="chip ${d.triggerLink===t.id?'on':''}" data-act="dlgTrigger" data-id="${t.id}">${esc((t.trigger||'trigger').slice(0,28))}</button>`).join('')}${d.triggerLink?`<button class="chip add" data-act="dlgTrigger" data-id="">clear</button>`:''}</div>${trig&&trig.response?`<div class="prompt" style="margin-top:10px">Typical defense: ${esc(trig.response)}</div>`:''}</div>`:'';
+  const patternPick=d.triggerLink?`<div class="field"><label>In this line she\u2026</label><div class="chip-pick"><button class="chip ${d.pattern==='follows'?'on':''}" data-act="dlgPattern" data-v="follows">follows the pattern</button><button class="chip ${d.pattern==='breaks'?'on':''}" data-act="dlgPattern" data-v="breaks">breaks the pattern</button>${d.pattern?`<button class="chip add" data-act="dlgPattern" data-v="">clear</button>`:''}</div></div>`:'';
+  return `${toggle}
+    <div class="field"><label>Subtext \u2014 what they really mean</label><textarea class="gist-input" data-act="dlgSubtext" placeholder="Under the line\u2026">${esc(d.subtext||'')}</textarea></div>
+    <div class="field"><label>Wound this line comes from</label>${woundPick}</div>
+    ${trigPick}${patternPick}
+    <div class="field"><label>Notes</label><textarea class="gist-input" data-act="dlgNotes" placeholder="Delivery, context, anything\u2026">${esc(d.notes||'')}</textarea></div>`;
 }
 function dlgReturn(sid){
   const fromEd=dlgFromEditor;dlgFromEditor=false;dlgDraft=null;save();
@@ -1774,8 +1820,8 @@ function dlgReturn(sid){
 function dlgCancel(){const sid=dlgDraft&&dlgDraft.scene;dlgReturn(sid);}
 function dlgSave(){
   const d=dlgDraft;if(!d)return;const sid=d.scene;
-  if(d.id){const rec=S.dialogue.find(x=>x.id===d.id);if(rec)Object.assign(rec,{speaker:d.speaker,recipients:d.recipients,tone:d.tone,purpose:d.purpose,text:d.text});}
-  else{S.dialogue.push({id:uid(),scene:d.scene,start:d.start,end:d.end,text:d.text,speaker:d.speaker,recipients:d.recipients,tone:d.tone,purpose:d.purpose,subtext:'',woundLink:null,triggerLink:null,pattern:null,notes:'',t:Date.now()});}
+  if(d.id){const rec=S.dialogue.find(x=>x.id===d.id);if(rec)Object.assign(rec,{speaker:d.speaker,recipients:d.recipients,tone:d.tone,purpose:d.purpose,text:d.text,subtext:d.subtext||'',woundLink:d.woundLink||null,triggerLink:d.triggerLink||null,pattern:d.pattern||null,notes:d.notes||''});}
+  else{S.dialogue.push({id:uid(),scene:d.scene,start:d.start,end:d.end,text:d.text,speaker:d.speaker,recipients:d.recipients,tone:d.tone,purpose:d.purpose,subtext:d.subtext||'',woundLink:d.woundLink||null,triggerLink:d.triggerLink||null,pattern:d.pattern||null,notes:d.notes||'',t:Date.now()});}
   dlgReturn(sid);
 }
 function dlgSectionHTML(s){
@@ -1920,6 +1966,12 @@ function handleClick(e){
     case 'dlgPickWith':S.ui.dlgWith=el.dataset.id;render();break;
     case 'dlgClearWith':S.ui.dlgWith=null;render();break;
     case 'dlgPickScene':S.ui.dlgScene=el.dataset.id;render();break;
+    case 'dlgMore':S.ui.dlgMore=!S.ui.dlgMore;dlgPage();break;
+    case 'dlgWound':if(dlgDraft){dlgDraft.woundLink=el.dataset.id||null;dlgDraft.triggerLink=null;dlgPage();}break;
+    case 'dlgTrigger':if(dlgDraft){dlgDraft.triggerLink=el.dataset.id||null;dlgPage();}break;
+    case 'dlgPattern':if(dlgDraft){dlgDraft.pattern=el.dataset.v||null;dlgPage();}break;
+    case 'dlgViewPair':S.ui.dlgChar=el.dataset.a;S.ui.dlgWith=el.dataset.b;S.ui.dlgTab='characters';go('dialogue');break;
+    case 'dlgViewChar':S.ui.dlgChar=el.dataset.id;S.ui.dlgWith=null;S.ui.dlgTab='characters';go('dialogue');break;
     case 'worldTab':S.ui.worldTab=el.dataset.t;render();break;
     case 'pickPick':{const cb=askCB;askCB=null;closeSheet();if(cb)cb(el.dataset.id);break;}
     case 'goWorldObjects':S.ui.worldTab='objects';go('world');break;
@@ -2034,6 +2086,8 @@ function handleInput(e){
     case 'triggerField':{const c=charById(S.ui.openCast),w=c&&c.wounds.find(x=>x.id===el.dataset.wid);const tr=w&&(w.triggers||[]).find(x=>x.id===el.dataset.tid);if(tr){tr[el.dataset.f]=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'locName':locById(S.ui.openLoc).name=el.value;save();break;
     case 'facetProse':{const l=locById(S.ui.openLoc);if(l){l.facets=l.facets||{};l.facets[el.dataset.fk]=l.facets[el.dataset.fk]||{};l.facets[el.dataset.fk][el.dataset.lk]=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
+    case 'dlgSubtext':if(dlgDraft){dlgDraft.subtext=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';}break;
+    case 'dlgNotes':if(dlgDraft){dlgDraft.notes=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';}break;
     case 'themeName':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.name=el.value;save();}break;}
     case 'themeDesc':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.desc=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'threadName':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){t.name=el.value;save();}break;}
