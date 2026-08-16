@@ -370,6 +370,7 @@
   .edov-read{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:16px 18px calc(40px + env(safe-area-inset-bottom));font-family:var(--serif);font-size:19px;line-height:1.55;color:var(--ink);-webkit-user-select:none;user-select:none}
   .dlg-mark{background:var(--gold-dim);border-bottom:2px solid var(--gold);border-radius:4px;cursor:pointer;padding:1px 3px;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:var(--gold-dim)}
   .dlg-mark:active{background:var(--gold-dim)}
+  .ann-mark{border-radius:4px;padding:1px 3px;border-bottom:2px solid transparent;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 </style>
 </head>
 <body>
@@ -382,6 +383,7 @@
     <span class="edov-title" id="edovTitle"></span>
     <button class="btn sm" id="edovToggle" data-act="edToggle" style="display:none">Read</button>
     <button class="btn sm" id="edovDlg" data-act="edMarkDlg" style="display:none">+ Dialogue</button>
+    <button class="btn sm" id="edovAnn" data-act="edMarkAnn" style="display:none">+ Note</button>
     <span class="edov-count" id="edovCount" style="margin-left:8px"></span>
   </div>
   <textarea class="edov-area" id="edovArea" placeholder="Write…"></textarea>
@@ -787,6 +789,9 @@ function createProject(type){
 const POEM_STATUS=['Draft','Needs Rewrite','Revising','Finished'];
 const POEM_MOODS=['angry','nostalgic','tender','detached','hopeful','grieving'];
 const POEM_MOTIFS=['water','religion','body','home','seasons','fire','childhood'];
+const POEM_ANN=[{k:'rewrite',label:'Needs rewrite',color:'#e0a3b4'},{k:'word',label:'Word choice',color:'#d9b48f'},{k:'meaning',label:'Meaning',color:'#8fb4d9'},{k:'rhythm',label:'Rhythm',color:'#9ec79f'},{k:'love',label:'Line I love',color:'#f2c879'},{k:'save',label:'Save for later',color:'#c8b8ff'}];
+function annColor(k){const a=POEM_ANN.find(x=>x.k===k);return a?a.color:'#c8b8ff';}
+function annLabel(k){const a=POEM_ANN.find(x=>x.k===k);return a?a.label:'note';}
 function seedPoetry(){return {poems:[],fragments:[],ptthemes:[],sections:[],ui:{view:'poems'}};}
 function migratePoetry(d){
   d=d||{};
@@ -801,6 +806,7 @@ function migratePoetry(d){
 function renderPoetry(){
   const v=S.ui.view||'poems';
   if(v==='poemOne')return poemPage();
+  if(v==='annOne')return annPage();
   const body={poems:poemsView,fragments:fragmentsView,ptthemes:ptThemesView}[v]||poemsView;
   root.innerHTML=poetryTopbar(v)+body();
   renderPoetryNav(v);bind();save();
@@ -845,6 +851,7 @@ function poemPage(){
         ${(p.body||'').trim()?`<div class="cc-prev" style="white-space:pre-wrap">${esc((p.body||'').trim())}</div>`:`<div class="cc-empty">Write the poem — tap to open the full-screen editor.</div>`}
         <div class="cc-meta">${ICON.expand}<span>${words?words+' words':'full-screen editor'}</span></div>
       </button>
+      ${(p.annotations||[]).length?`<div class="hint" style="margin-top:8px">${p.annotations.length} note${p.annotations.length>1?'s':''} — open the poem, tap Read to see them inline.</div>`:''}
       <div class="field" style="margin-top:16px"><label>Status</label><div class="chip-pick">${statusChips}</div></div>
       <div class="field"><label>Themes</label><div class="chip-pick">${themeChips}</div></div>
       <div class="field"><label>Mood / tone (optional)</label><div class="chip-pick">${moodChips}</div></div>
@@ -1851,7 +1858,8 @@ function openEditor(kind,id,field){
   EDIT={kind,id,field};
   document.getElementById('edovTitle').textContent=t.title;
   const dlgBtn=document.getElementById('edovDlg');if(dlgBtn)dlgBtn.style.display=(kind==='scene'&&field==='body')?'':'none';
-  const tgBtn=document.getElementById('edovToggle');if(tgBtn)tgBtn.style.display=(kind==='scene'&&field==='body')?'':'none';
+  const tgBtn=document.getElementById('edovToggle');if(tgBtn)tgBtn.style.display=((kind==='scene'||kind==='poem')&&field==='body')?'':'none';
+  const annBtn=document.getElementById('edovAnn');if(annBtn)annBtn.style.display=(kind==='poem'&&field==='body')?'':'none';
   edovMode='write';document.getElementById('edovRead').style.display='none';document.getElementById('edovArea').style.display='';
   const area=document.getElementById('edovArea');
   area.value=(t.obj[t.field]!=null?t.obj[t.field]:'');edCount(area.value);
@@ -1867,7 +1875,7 @@ if(window.visualViewport){window.visualViewport.addEventListener('resize',functi
 window.addEventListener('orientationchange',function(){setTimeout(function(){edovFit();sheetFit();},250);});
 function closeEditor(){document.getElementById('edov').classList.remove('show');document.getElementById('edovRead').style.display='none';document.getElementById('edovArea').style.display='';edovMode='write';EDIT=null;render();}
 document.getElementById('edovArea').oninput=function(){if(!EDIT)return;const t=editorTarget(EDIT.kind,EDIT.id,EDIT.field);if(t.obj){t.obj[t.field]=this.value;edCount(this.value);save();}};
-document.getElementById('edov').onclick=function(e){const el=e.target.closest('[data-act]');if(!el)return;if(el.dataset.act==='edClose')closeEditor();else if(el.dataset.act==='edMarkDlg')edMarkDialogue();else if(el.dataset.act==='edToggle')edovSetMode(edovMode==='read'?'write':'read');else if(el.dataset.act==='openDlg'){const dl=S.dialogue.find(x=>x.id===el.dataset.id);if(dl)openDialogCard(dl);}};
+document.getElementById('edov').onclick=function(e){const el=e.target.closest('[data-act]');if(!el)return;if(el.dataset.act==='edClose')closeEditor();else if(el.dataset.act==='edMarkDlg')edMarkDialogue();else if(el.dataset.act==='edToggle')edovSetMode(edovMode==='read'?'write':'read');else if(el.dataset.act==='openDlg'){const dl=S.dialogue.find(x=>x.id===el.dataset.id);if(dl)openDialogCard(dl);}else if(el.dataset.act==='edMarkAnn')edAnnotate();else if(el.dataset.act==='openAnn'){const pm=(S.poems||[]).find(x=>x.id===EDIT.id);const a=pm&&(pm.annotations||[]).find(x=>x.id===el.dataset.id);if(a)openAnnCard(a);}};
 /* ---- Dialogue capture (1.6a) ---- */
 let dlgDraft=null;
 function edMarkDialogue(){
@@ -1974,16 +1982,73 @@ function renderBodyWithMarks(scene){
 function edovSetMode(m){
   edovMode=m;
   const ta=document.getElementById('edovArea'),rd=document.getElementById('edovRead'),tg=document.getElementById('edovToggle'),dg=document.getElementById('edovDlg');
+  const an=document.getElementById('edovAnn');
   if(m==='read'){
-    const sc=EDIT&&S.scenes.find(x=>x.id===EDIT.id);
-    rd.innerHTML=sc?renderBodyWithMarks(sc):'';
-    ta.style.display='none';rd.style.display='';if(tg)tg.textContent='Write';if(dg)dg.style.display='none';
+    if(EDIT&&EDIT.kind==='poem'){const pm=(S.poems||[]).find(x=>x.id===EDIT.id);rd.innerHTML=pm?renderPoemWithMarks(pm):'';}
+    else{const sc=EDIT&&S.scenes.find(x=>x.id===EDIT.id);rd.innerHTML=sc?renderBodyWithMarks(sc):'';}
+    ta.style.display='none';rd.style.display='';if(tg)tg.textContent='Write';if(dg)dg.style.display='none';if(an)an.style.display='none';
   }else{
     ta.style.display='';rd.style.display='none';if(tg)tg.textContent='Read';
     if(dg)dg.style.display=(EDIT&&EDIT.kind==='scene'&&EDIT.field==='body')?'':'none';
+    if(an)an.style.display=(EDIT&&EDIT.kind==='poem'&&EDIT.field==='body')?'':'none';
   }
 }
-function edovRefreshRead(){if(edovMode==='read'){const sc=EDIT&&S.scenes.find(x=>x.id===EDIT.id);const rd=document.getElementById('edovRead');if(rd&&sc)rd.innerHTML=renderBodyWithMarks(sc);}}
+function edovRefreshRead(){if(edovMode==='read'){const rd=document.getElementById('edovRead');if(!rd||!EDIT)return;if(EDIT.kind==='poem'){const pm=(S.poems||[]).find(x=>x.id===EDIT.id);if(pm)rd.innerHTML=renderPoemWithMarks(pm);}else{const sc=S.scenes.find(x=>x.id===EDIT.id);if(sc)rd.innerHTML=renderBodyWithMarks(sc);}}}
+let annDraft=null,annFromEditor=false;
+function renderPoemWithMarks(poem){
+  const body=poem.body||'';const anns=(poem.annotations||[]);let ranges=[];
+  anns.forEach(a=>{const t=a.text||'';if(!t)return;let idx=body.indexOf(t,Math.max(0,(a.start||0)-30));if(idx<0)idx=body.indexOf(t);if(idx>=0){a.start=idx;a.end=idx+t.length;ranges.push({start:idx,end:idx+t.length,id:a.id,kind:a.kind});}});
+  ranges.sort((a,b)=>a.start-b.start);let clean=[],lastEnd=-1;ranges.forEach(r=>{if(r.start>=lastEnd){clean.push(r);lastEnd=r.end;}});
+  let html='',pos=0;clean.forEach(r=>{const col=annColor(r.kind);html+=esc(body.slice(pos,r.start));html+=`<span class="ann-mark" data-act="openAnn" data-id="${r.id}" style="border-bottom-color:${col};background:${col}22">${esc(body.slice(r.start,r.end))}</span>`;pos=r.end;});
+  html+=esc(body.slice(pos));return html.replace(/\n/g,'<br>');
+}
+function edAnnotate(){
+  if(!EDIT||EDIT.kind!=='poem'||EDIT.field!=='body')return;
+  const area=document.getElementById('edovArea');const s0=area.selectionStart,s1=area.selectionEnd;
+  if(s1<=s0){document.getElementById('edovCount').textContent='select a line first';return;}
+  const raw=area.value.slice(s0,s1);const text=raw.trim();if(!text)return;
+  const lead=raw.length-raw.replace(/^\s+/,'').length,trail=raw.length-raw.replace(/\s+$/,'').length;
+  openAnnCard({poem:EDIT.id,start:s0+lead,end:s1-trail,text});
+}
+function openAnnCard(seed){
+  const poem=S.poems.find(x=>x.id===(seed.poem||S.ui.openPoem));if(!poem)return;
+  if(seed&&seed.id){annDraft=Object.assign({},JSON.parse(JSON.stringify(seed)));annDraft.poem=poem.id;}
+  else{annDraft={poem:poem.id,start:seed.start,end:seed.end,text:seed.text,kind:'rewrite',note:''};}
+  annFromEditor=document.getElementById('edov').classList.contains('show');
+  S.ui.openPoem=poem.id;
+  if(annFromEditor){document.getElementById('edov').classList.remove('show');EDIT=null;edovMode='write';}
+  go('annOne');
+}
+function annPage(){
+  const d=annDraft;if(!d){go('poemOne');return;}
+  const kinds=POEM_ANN.map(a=>`<button class="chip ${d.kind===a.k?'on':''}" data-act="annKind" data-v="${a.k}" style="${d.kind===a.k?`background:${a.color};color:#1a1626`:''}">${a.label}</button>`).join('');
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="annCancel">${ICON.back} Back</button><span style="margin-left:auto"></span>${d.id?`<button class="iconbtn" data-act="annDelete">${ICON.trash}</button>`:''}</div>
+    <div class="view">
+      <div class="eyebrow">${d.id?'Edit note':'Annotate'}</div>
+      <div class="prompt" style="margin-bottom:16px;white-space:pre-wrap">${esc(d.text)}</div>
+      <div class="field"><label>What kind of note</label><div class="chip-pick">${kinds}</div></div>
+      <div class="field"><label>Note (optional)</label><textarea class="gist-input" data-act="annNote" placeholder="What needs doing, or why it works…">${esc(d.note||'')}</textarea></div>
+      ${d.kind==='save'?`<div class="hint">Saving for later also lifts this line into your Fragments bank.</div>`:''}
+      <button class="btn gold" style="width:100%;margin-top:6px" data-act="annSave">Save note</button>
+    </div>`;
+  renderPoetryNav('poemOne');bind();root.querySelectorAll('[data-act="annNote"]').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});save();
+}
+function annReturn(pid){
+  const fromEd=annFromEditor;annFromEditor=false;annDraft=null;save();
+  if(pid)S.ui.openPoem=pid;go('poemOne');
+  if(fromEd&&pid){openEditor('poem',pid,'body');setTimeout(function(){edovSetMode('read');},90);}
+}
+function annCancel(){const pid=annDraft&&annDraft.poem;annReturn(pid);}
+function annSave(){
+  const d=annDraft;if(!d)return;const poem=S.poems.find(x=>x.id===d.poem);if(!poem){annReturn(d.poem);return;}
+  poem.annotations=poem.annotations||[];
+  if(d.id){const a=poem.annotations.find(x=>x.id===d.id);if(a)Object.assign(a,{kind:d.kind,note:d.note,text:d.text});}
+  else{const a={id:uid(),start:d.start,end:d.end,text:d.text,kind:d.kind,note:d.note||'',t:Date.now()};poem.annotations.push(a);d.id=a.id;}
+  S.fragments=S.fragments||[];
+  if(d.kind==='save'){if(!S.fragments.some(fr=>fr.annId===d.id))S.fragments.push({id:uid(),text:d.text,fromPoem:poem.id,note:d.note||'',themes:[],annId:d.id,t:Date.now()});}
+  else{S.fragments=S.fragments.filter(fr=>fr.annId!==d.id);}
+  annReturn(poem.id);
+}
 const A=e=>e.target.closest('[data-act]');
 function curScene(){return S.scenes.find(x=>x.id===S.ui.editScene);}
 function findTrait(t){return charById(S.ui.openCast)?.traits.find(x=>x.id===t);}
@@ -2000,6 +2065,11 @@ function handleClick(e){
     case 'newProject':newProjectSheet();break;
     case 'createProject':createProject(el.dataset.t);break;
     case 'goPoems':go('poems');break;
+    case 'annKind':if(annDraft){annDraft.kind=el.dataset.v;annPage();}break;
+    case 'annSave':annSave();break;
+    case 'annCancel':annCancel();break;
+    case 'openAnn':{const pm=(S.poems||[]).find(x=>x.id===S.ui.openPoem);const a=pm&&(pm.annotations||[]).find(x=>x.id===el.dataset.id);if(a)openAnnCard(a);break;}
+    case 'annDelete':if(annDraft&&annDraft.id){const poem=S.poems.find(x=>x.id===annDraft.poem);if(poem){poem.annotations=(poem.annotations||[]).filter(x=>x.id!==annDraft.id);S.fragments=(S.fragments||[]).filter(fr=>fr.annId!==annDraft.id);}annReturn(annDraft.poem);}break;
     case 'openPoem':S.ui.openPoem=el.dataset.id;go('poemOne');break;
     case 'addPoem':{const p={id:uid(),title:'',body:'',status:'Draft',themes:[],mood:[],motifs:[],section:null,annotations:[],t:Date.now()};S.poems.push(p);S.ui.openPoem=p.id;go('poemOne');break;}
     case 'delPoemOne':{const p=S.poems.find(x=>x.id===S.ui.openPoem);if(p&&confirm('Delete this poem?')){S.poems=S.poems.filter(x=>x.id!==S.ui.openPoem);go('poems');}break;}
@@ -2235,6 +2305,7 @@ function handleInput(e){
     case 'dlgNotes':if(dlgDraft){dlgDraft.notes=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';}break;
     case 'ideaTitle':{const n=(S.ideas||[]).find(x=>x.id===S.ui.openIdea);if(n){n.title=el.value;save();}break;}
     case 'poemTitle':{const p=(S.poems||[]).find(x=>x.id===S.ui.openPoem);if(p){p.title=el.value;save();}break;}
+    case 'annNote':if(annDraft){annDraft.note=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';}break;
     case 'themeName':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.name=el.value;save();}break;}
     case 'themeDesc':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.desc=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'threadName':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){t.name=el.value;save();}break;}
