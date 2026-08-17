@@ -811,6 +811,8 @@ function renderPoetry(){
   const v=S.ui.view||'poems';
   if(v==='poemOne')return poemPage();
   if(v==='annOne')return annPage();
+  if(v==='fragOne')return fragPage();
+  if(v==='pthemeOne')return pthemePage();
   if(v==='rewrites'||v==='faves'){root.innerHTML=(v==='rewrites'?rewritesView():favesView());renderPoetryNav('poems');bind();save();return;}
   const body={poems:poemsView,fragments:fragmentsView,ptthemes:ptThemesView}[v]||poemsView;
   root.innerHTML=poetryTopbar(v)+body();
@@ -868,17 +870,46 @@ function poemPage(){
 }
 function fragmentsView(){
   const rows=S.fragments.map(fr=>{const from=fr.fromPoem&&S.poems.find(p=>p.id===fr.fromPoem);
-    return `<div class="slip"><div class="txt" style="white-space:pre-wrap">${esc(fr.text)}</div><div class="when">${from?'from \u201c'+esc(from.title||'Untitled')+'\u201d':'saved'}</div></div>`;}).join('');
-  return `<div class="view"><div class="hint" style="margin:4px 0 14px">Good lines that don't belong in the current poem — saved, not deleted. Saving from a poem and inserting into another arrives in the next update.</div>
+    const th=(fr.themes||[]).map(id=>{const t=S.ptthemes.find(x=>x.id===id);return t&&t.name;}).filter(Boolean).join(', ');
+    return `<div class="slip" data-act="openFrag" data-id="${fr.id}" style="cursor:pointer"><div class="txt" style="white-space:pre-wrap">${esc(fr.text||'(empty)')}</div><div class="when">${from?'from \u201c'+esc(from.title||'Untitled')+'\u201d':'saved'}${th?' · '+esc(th):''}</div></div>`;}).join('');
+  return `<div class="view"><div class="hint" style="margin:4px 0 14px">Good lines that don't belong in the current poem — saved, not deleted. Tap a fragment to add notes, tag it, or drop it into a poem.</div>
     <div class="eyebrow">Fragments</div>
-    ${S.fragments.length?rows:`<div class="empty"><div class="mk">No fragments yet.</div><p>When you write a line you love that doesn't fit, you'll save it here instead of losing it.</p></div>`}</div>`;
+    ${S.fragments.length?rows:`<div class="empty"><div class="mk">No fragments yet.</div><p>Mark a line “Save for later” in a poem, or add one here.</p></div>`}
+    <button class="btn gold" style="width:100%;margin-top:10px" data-act="addFrag">${ICON.plus} New fragment</button></div>`;
+}
+function fragPage(){
+  const fr=S.fragments.find(x=>x.id===S.ui.openFrag);if(!fr){go('fragments');return;}
+  const from=fr.fromPoem&&S.poems.find(p=>p.id===fr.fromPoem);
+  const themeChips=S.ptthemes.map(t=>`<button class="chip ${(fr.themes||[]).includes(t.id)?'on':''}" data-act="fragTheme" data-id="${t.id}">${esc(t.name||'untitled')}</button>`).join('')+`<button class="chip add" data-act="fragNewTheme">+ new</button>`;
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goFragments">${ICON.back} Fragments</button><span style="margin-left:auto"></span><button class="iconbtn" data-act="delFragOne">${ICON.trash}</button></div>
+    <div class="view">
+      <div class="field"><label>Line</label><textarea class="gist-input" data-act="fragText" placeholder="The line you're keeping…">${esc(fr.text)}</textarea></div>
+      ${from?`<div class="hint" style="margin:-6px 0 12px">from \u201c${esc(from.title||'Untitled')}\u201d</div>`:''}
+      <div class="field"><label>Note (optional)</label><textarea class="gist-input" data-act="fragNote" placeholder="Why you kept it, where it might go…">${esc(fr.note||'')}</textarea></div>
+      <div class="field"><label>Themes</label><div class="chip-pick">${themeChips}</div></div>
+      <div class="field"><label>Insert into a poem</label>
+        ${S.poems.length?`<div class="chip-pick">${S.poems.map(p=>`<button class="chip" data-act="fragInsert" data-id="${p.id}">${esc(p.title||'Untitled')}</button>`).join('')}</div><div class="hint" style="margin-top:6px">Appends this line to the end of the chosen poem, and takes you there.</div>`:'<div class="hint">No poems yet to insert into.</div>'}
+      </div>
+    </div>`;
+  renderPoetryNav('fragments');bind();root.querySelectorAll('[data-act="fragText"],[data-act="fragNote"]').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});save();
 }
 function ptThemesView(){
   const rows=S.ptthemes.map(t=>{const n=S.poems.filter(p=>(p.themes||[]).includes(t.id)).length;
-    return `<div class="row"><div class="swatch" style="background:var(--raised2);color:var(--gold)">${ICON.mask}</div><div style="flex:1;min-width:0"><div class="rt">${esc(t.name||'Untitled')}</div><div class="rs">${n} poem${n!==1?'s':''}</div></div><button class="conn-del" data-act="delPtTheme" data-id="${t.id}">${ICON.x}</button></div>`;}).join('');
+    return `<div class="row" data-act="openPtTheme" data-id="${t.id}"><div class="swatch" style="background:var(--raised2);color:var(--gold)">${ICON.mask}</div><div style="flex:1;min-width:0"><div class="rt">${esc(t.name||'Untitled')}</div><div class="rs">${n} poem${n!==1?'s':''}</div></div><span class="chev">${ICON.chevR}</span></div>`;}).join('');
   return `<div class="view"><div class="eyebrow">Themes</div>
-    <div class="hint" style="margin-bottom:10px">Reusable themes across the collection — grief, home, memory. Add them here or from a poem.</div>${rows}
+    <div class="hint" style="margin-bottom:10px">Reusable themes across the collection — grief, home, memory. Tap one to see its poems; add here or from a poem.</div>${rows}
     <button class="btn gold" style="width:100%;margin-top:6px" data-act="addPtTheme">${ICON.plus} New theme</button></div>`;
+}
+function pthemePage(){
+  const t=S.ptthemes.find(x=>x.id===S.ui.openPtTheme);if(!t){go('ptthemes');return;}
+  const poems=S.poems.filter(p=>(p.themes||[]).includes(t.id));
+  root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goPtThemes">${ICON.back} Themes</button><span style="margin-left:auto"></span><button class="iconbtn" data-act="delPtThemeOne">${ICON.trash}</button></div>
+    <div class="view">
+      <input class="input" style="font-family:var(--serif);font-size:24px;border:none;background:none;padding:6px 0;margin-bottom:10px" value="${esc(t.name)}" data-act="ptThemeName" placeholder="Theme name">
+      <div class="eyebrow">Poems under this theme</div>
+      ${poems.length?poems.map(p=>`<div class="row" data-act="openPoem" data-id="${p.id}"><div class="swatch" style="background:var(--raised2);color:var(--gold);font-family:var(--mono);font-size:13px">${S.poems.indexOf(p)+1}</div><div style="flex:1;min-width:0"><div class="rt">${esc(p.title||'Untitled')}</div><div class="rs">${esc(p.status||'Draft')}</div></div><span class="chev">${ICON.chevR}</span></div>`).join(''):'<div class="hint">No poems tagged with this theme yet. Open a poem and add it under Themes.</div>'}
+    </div>`;
+  renderPoetryNav('ptthemes');bind();save();
 }
 
 /* ---------------- SPINE ---------------- */
@@ -2093,6 +2124,16 @@ function handleClick(e){
     case 'goPoems':go('poems');break;
     case 'goRewrites':go('rewrites');break;
     case 'goFaves':go('faves');break;
+    case 'goFragments':go('fragments');break;
+    case 'openFrag':S.ui.openFrag=el.dataset.id;go('fragOne');break;
+    case 'addFrag':{const fr={id:uid(),text:'',fromPoem:null,note:'',themes:[],t:Date.now()};S.fragments.push(fr);S.ui.openFrag=fr.id;go('fragOne');break;}
+    case 'delFragOne':{if(confirm('Delete this fragment?')){S.fragments=S.fragments.filter(x=>x.id!==S.ui.openFrag);go('fragments');}break;}
+    case 'fragTheme':{const fr=S.fragments.find(x=>x.id===S.ui.openFrag);if(fr){fr.themes=fr.themes||[];togID(fr.themes,el.dataset.id);fragPage();}break;}
+    case 'fragNewTheme':askText('New theme','',n=>{const t={id:uid(),name:n};S.ptthemes.push(t);const fr=S.fragments.find(x=>x.id===S.ui.openFrag);if(fr){fr.themes=fr.themes||[];fr.themes.push(t.id);}fragPage();});break;
+    case 'fragInsert':{const fr=S.fragments.find(x=>x.id===S.ui.openFrag);const p=S.poems.find(x=>x.id===el.dataset.id);if(fr&&p){p.body=(p.body&&p.body.trim()?p.body.replace(/\s+$/,'')+'\n\n':'')+fr.text;S.ui.openPoem=p.id;go('poemOne');}break;}
+    case 'goPtThemes':go('ptthemes');break;
+    case 'openPtTheme':S.ui.openPtTheme=el.dataset.id;go('pthemeOne');break;
+    case 'delPtThemeOne':{const id=S.ui.openPtTheme;if(confirm('Delete this theme?')){S.ptthemes=S.ptthemes.filter(x=>x.id!==id);S.poems.forEach(p=>{p.themes=(p.themes||[]).filter(x=>x!==id);});go('ptthemes');}break;}
     case 'annKind':if(annDraft){annDraft.kind=el.dataset.v;annPage();}break;
     case 'annSave':annSave();break;
     case 'annCancel':annCancel();break;
@@ -2334,6 +2375,9 @@ function handleInput(e){
     case 'ideaTitle':{const n=(S.ideas||[]).find(x=>x.id===S.ui.openIdea);if(n){n.title=el.value;save();}break;}
     case 'poemTitle':{const p=(S.poems||[]).find(x=>x.id===S.ui.openPoem);if(p){p.title=el.value;save();}break;}
     case 'annNote':if(annDraft){annDraft.note=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';}break;
+    case 'fragText':{const fr=S.fragments.find(x=>x.id===S.ui.openFrag);if(fr){fr.text=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
+    case 'fragNote':{const fr=S.fragments.find(x=>x.id===S.ui.openFrag);if(fr){fr.note=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
+    case 'ptThemeName':{const t=S.ptthemes.find(x=>x.id===S.ui.openPtTheme);if(t){t.name=el.value;save();}break;}
     case 'themeName':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.name=el.value;save();}break;}
     case 'themeDesc':{const t=S.themes.find(x=>x.id===S.ui.openTheme);if(t){t.desc=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'threadName':{const t=S.threads.find(x=>x.id===S.ui.openThread);if(t){t.name=el.value;save();}break;}
