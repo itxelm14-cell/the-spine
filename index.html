@@ -379,6 +379,15 @@
   .branch-banner>svg{width:15px;height:15px;color:var(--gold);flex:none}
   .branch-banner span{flex:1;min-width:0}
   .branch-banner b{font-weight:700}
+  .clock-total{font-family:var(--mono);font-size:12px;color:var(--gold);background:var(--gold-dim);border-radius:8px;padding:6px 10px;margin-bottom:16px;display:inline-block}
+  .clock-row{display:flex;gap:10px;align-items:stretch;cursor:pointer}
+  .clock-gap{width:92px;flex:none;text-align:right;font-family:var(--mono);font-size:11px;color:var(--muted);padding-top:1px}
+  .clock-mid{width:14px;flex:none;display:flex;flex-direction:column;align-items:center}
+  .clock-dot{width:9px;height:9px;border-radius:50%;background:var(--gold);margin-top:3px;flex:none}
+  .clock-line{flex:1;width:2px;background:var(--border);min-height:14px}
+  .clock-body{flex:1;min-width:0;padding-bottom:18px}
+  .clock-gist{font-family:var(--serif);font-size:16px;line-height:1.3}
+  .clock-elapsed{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:2px}
 </style>
 </head>
 <body>
@@ -419,6 +428,13 @@ const PURPOSE_TAGS=['introduce','conflict','romance','reveal','foreshadow','deci
 const DLG_TONES=['playful','cold','defensive','angry','vulnerable','tender','sarcastic','fearful','detached'];
 const DLG_PURPOSES=['plot','character','relationship','world','theme','conflict','humor'];
 const DLG_GROUP='__group__';
+const GAP_UNITS=[['min','min'],['hr','hr'],['day','day'],['wk','wk'],['mo','mo'],['yr','yr']];
+const GAP_DAYS={min:1/1440,hr:1/24,day:1,wk:7,mo:30,yr:365};
+function gapDays(g){return g&&g.n?g.n*(GAP_DAYS[g.unit]||1):0;}
+function gapLabel(g){if(!g||!g.n)return '';const ul={min:'min',hr:'hr',day:'day',wk:'week',mo:'month',yr:'year'}[g.unit]||g.unit;return `+${g.n} ${ul}${g.n>1?'s':''}`;}
+function gapShort(g){if(!g||!g.n)return '';const u={min:'m',hr:'h',day:'d',wk:'w',mo:'mo',yr:'y'}[g.unit]||g.unit;return `+${g.n}${u}`;}
+function elapsedLabel(days){if(days<=0)return 'start';if(days<1){const h=Math.round(days*24);return h<=0?'moments in':`~${h} hr in`;}if(days<14)return `~day ${Math.round(days)}`;if(days<60)return `~${Math.round(days/7)} weeks in`;if(days<365)return `~${Math.round(days/30)} months in`;return `~${(days/365).toFixed(1)} years in`;}
+function spanLabel(days){if(days<=0)return 'a single moment';if(days<1)return `about ${Math.round(days*24)} hours`;if(days<21)return `about ${Math.round(days)} days`;if(days<60)return `about ${Math.round(days/7)} weeks`;if(days<365)return `about ${Math.round(days/30)} months`;return `about ${(days/365).toFixed(1)} years`;}
 const REL_DIMS=[
   {key:'trust',label:'Trust',low:'guarded',high:'trusting'},
   {key:'respect',label:'Respect',low:'dismissive',high:'admiring'},
@@ -614,7 +630,7 @@ function migrate(s){
   s.ideas=(s.ideas||[]).map(n=>Object.assign({id:uid(),title:'',body:'',t:Date.now()},n));
   s.forks=(s.forks||[]).map(fk=>{const F=Object.assign({id:uid(),name:'',desc:'',options:[],t:Date.now()},fk);F.options=(F.options||[]).map(o=>Object.assign({id:uid(),label:''},o));return F;});
   s.dialogue=(s.dialogue||[]).map(dl=>Object.assign({recipients:[],tone:[],purpose:[],subtext:'',woundLink:null,triggerLink:null,pattern:null,notes:''},dl));
-  s.scenes.forEach(sc=>{sc.links=sc.links||[];sc.forks=sc.forks||{};});
+  s.scenes.forEach(sc=>{sc.links=sc.links||[];sc.forks=sc.forks||{};if(sc.gap&&typeof sc.gap.n!=='number')delete sc.gap;});
   s.locations.forEach(l=>{l.timeline=l.timeline||[];});
   s.locations.forEach(l=>{l.facets=l.facets||{};
     Object.keys(l.facets).forEach(fk=>{const fo=l.facets[fk];
@@ -727,15 +743,15 @@ function render(){
   if(v==='dlgOne')return dlgPage();
   if(v==='ideaOne')return ideaPage();
   if(v==='forkOne')return forkPage();
-  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView,threads:threadsView,dialogue:dlgHubView,ideas:ideasView,forks:forksView}[v]||viewSpine)();
+  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView,threads:threadsView,dialogue:dlgHubView,ideas:ideasView,forks:forksView,clock:clockView}[v]||viewSpine)();
   renderNav();bind();
   if(v==='spine'){drawRail();requestAnimationFrame(drawRail);setTimeout(drawRail,260);}
   if(v==='compare'){requestAnimationFrame(drawCompare);setTimeout(drawCompare,80);setTimeout(drawCompare,300);}
   save();
 }
 function topbar(){
-  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme',threads:'Storylines',threadOne:'A thread',dialogue:'Dialogue',ideas:'Plot & ideas',ideaOne:'A note',forks:'Forks',forkOne:'A fork'};
-  const parent={compare:'spine',balance:'spine',themes:'spine',threads:'spine',ideas:'spine',forks:'spine',heat:'cast',rels:'cast',web:'cast',dialogue:'cast'};
+  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme',threads:'Storylines',threadOne:'A thread',dialogue:'Dialogue',ideas:'Plot & ideas',ideaOne:'A note',forks:'Forks',forkOne:'A fork',clock:'Story-clock'};
+  const parent={compare:'spine',balance:'spine',themes:'spine',threads:'spine',ideas:'spine',forks:'spine',clock:'spine',heat:'cast',rels:'cast',web:'cast',dialogue:'cast'};
   const par=parent[S.ui.view];
   const back=par
     ?`<button class="iconbtn" data-act="nav" data-v="${par}" aria-label="Back" style="flex:none">${ICON.back}</button>`
@@ -981,9 +997,34 @@ function filterBar(){
   b+=`<button class="chip" data-act="goIdeas">${ICON.feather} Ideas</button>`;
   b+=`<button class="chip" data-act="goThreads">${ICON.branch} Threads</button>`;
   b+=`<button class="chip" data-act="goForks">${ICON.branch} Forks</button>`;
+  b+=`<button class="chip" data-act="goClock">\u23f1 Clock</button>`;
   b+=`<button class="chip" data-act="goThemes">${ICON.mask} Themes</button>`;
   b+=`<button class="chip" data-act="goBalance">${ICON.balance} Balance</button>`;
   return b+'</div>';
+}
+function gapHTML(sc){
+  const g=sc.gap;
+  return `<div class="field"><label>Time since previous scene (optional)</label>
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <input type="number" inputmode="numeric" class="input" style="width:74px;flex:none" value="${g&&g.n?g.n:''}" data-act="gapN" placeholder="0">
+      <div class="chip-pick" style="flex:1">${GAP_UNITS.map(([u,l])=>`<button class="chip sub ${g&&g.unit===u?'on':''}" data-act="gapUnit" data-v="${u}">${l}</button>`).join('')}</div>
+    </div>
+    ${g&&g.n?`<button class="btn sm ghost" data-act="gapClear" style="margin-top:8px">Clear \u2014 same moment / unknown</button>`:'<div class="hint" style="margin-top:6px">Leave blank if it follows straight on, or the gap is unknown.</div>'}
+  </div>`;
+}
+function clockView(){
+  const order=flatScenes();
+  if(!order.length)return `<div class="view"><div class="empty"><div class="mk">No scenes yet.</div><p>Once you have scenes, set the time between them here to see the story's clock.</p></div></div>`;
+  let cum=0;
+  const rows=order.map((sc,i)=>{const g=sc.gap;cum+=gapDays(g);const gl=i===0?'start':(gapLabel(g)||'\u2014');
+    return `<div class="clock-row" data-act="openScene" data-id="${sc.id}">
+      <div class="clock-gap">${esc(gl)}</div>
+      <div class="clock-mid"><div class="clock-dot"></div><div class="clock-line"></div></div>
+      <div class="clock-body"><div class="clock-gist">${esc(sc.gist||'untitled')}</div><div class="clock-elapsed">${esc(elapsedLabel(cum))}</div></div></div>`;}).join('');
+  return `<div class="view"><div class="eyebrow">Story-clock</div>
+    <div class="hint" style="margin-bottom:8px">Relative time only \u2014 the gap before each scene, and roughly how far into the story you are. Set gaps in a scene's editor.</div>
+    <div class="clock-total">Total span: ${esc(spanLabel(cum))}</div>
+    ${rows}</div>`;
 }
 function forksView(){
   const rows=S.forks.map(fk=>`<div class="row" data-act="openFork" data-id="${fk.id}"><div class="swatch" style="background:var(--raised2);color:var(--gold)">${ICON.branch}</div>
@@ -1134,7 +1175,7 @@ function sceneRow(s,i,n){
     <div class="sc-grip" data-grip="${s.id}" title="Drag to another book or milestone · tap to move">${ICON.grip}</div>
     <div class="sc-main" data-act="openScene" data-id="${s.id}">
       <div class="gist-c ${g?'':'empty'}">${g?esc(g):'untitled — tap to write'}</div>
-      ${(who||lc||tdots||thdots||bw||dlgN)?`<div class="sc-sub">${who?`<div class="who">${who}</div>`:''}${lc?`<span class="loc-chip" style="color:${lc.color}">${esc(lc.name)}</span>`:''}${(tdots||thdots)?`<span class="tdots">${tdots}${thdots}</span>`:''}${bw?`<span class="body-flag">${ICON.feather} ${bw}</span>`:''}${dlgN?`<span class="body-flag">${ICON.speech} ${dlgN}</span>`:''}</div>`:''}
+      ${(who||lc||tdots||thdots||bw||dlgN||gapShort(s.gap))?`<div class="sc-sub">${who?`<div class="who">${who}</div>`:''}${lc?`<span class="loc-chip" style="color:${lc.color}">${esc(lc.name)}</span>`:''}${(tdots||thdots)?`<span class="tdots">${tdots}${thdots}</span>`:''}${bw?`<span class="body-flag">${ICON.feather} ${bw}</span>`:''}${dlgN?`<span class="body-flag">${ICON.speech} ${dlgN}</span>`:''}${gapShort(s.gap)?`<span class="body-flag" style="color:var(--gold)">${gapShort(s.gap)}</span>`:''}</div>`:''}
     </div>
     <div class="sc-tools">
       <button data-act="scUp" data-id="${s.id}" ${i===0?'disabled style=opacity:.25':''}>${ICON.up}</button>
@@ -1322,6 +1363,7 @@ function sceneEditor(){
         </button></div>
       ${dlgSectionHTML(s)}
       ${forkTagHTML(s)}
+      ${gapHTML(s)}
       <div class="field"><label>Book</label><div class="chip-pick">${bookBtns}</div></div>
       <div class="field"><label>Milestone it builds toward</label><div class="chip-pick">${msBtns}</div></div>
       <div class="field"><label>Who's in it</label><div class="chip-pick">${charBtns}</div></div>
@@ -1883,7 +1925,7 @@ function renderNav(){
   if(_ap&&_ap.type==='poetry')return renderPoetryNav(S.ui.view);
   const v=S.ui.view;
   const map=[['spine','Spine',ICON.spineN],['capture','Catch',ICON.featherN],['cast','Cast',ICON.cast],['world','World',ICON.world]];
-  const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'||v==='themes'||v==='themeOne'||v==='threads'||v==='threadOne'||v==='dlgOne'||v==='ideas'||v==='ideaOne'||v==='forks'||v==='forkOne'?'spine':(v==='heat'||v==='rels'||v==='relOne'||v==='dialogue'?'cast':v))));
+  const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'||v==='themes'||v==='themeOne'||v==='threads'||v==='threadOne'||v==='dlgOne'||v==='ideas'||v==='ideaOne'||v==='forks'||v==='forkOne'||v==='clock'?'spine':(v==='heat'||v==='rels'||v==='relOne'||v==='dialogue'?'cast':v))));
   document.getElementById('nav').innerHTML=`<div class="nav-inner">${map.map(([k,lab,ic])=>`<button data-act="nav" data-v="${k}" class="${active===k?'on':''}">${ic}${k==='capture'&&S.slips.length?`<span class="badge">${S.slips.length}</span>`:''}<span>${lab}</span></button>`).join('')}</div>`;
 }
 
@@ -2267,6 +2309,9 @@ function handleClick(e){
     case 'goThreads':go('threads');break;
     case 'goIdeas':go('ideas');break;
     case 'goForks':go('forks');break;
+    case 'goClock':go('clock');break;
+    case 'gapUnit':{const sc=curScene();if(sc){sc.gap={n:(sc.gap&&sc.gap.n)||1,unit:el.dataset.v};sceneEditor();}break;}
+    case 'gapClear':{const sc=curScene();if(sc){delete sc.gap;sceneEditor();}break;}
     case 'viewBranch':S.ui.branch={fork:el.dataset.fk,option:el.dataset.id};go('spine');break;
     case 'clearBranch':S.ui.branch=null;render();break;
     case 'openFork':S.ui.openFork=el.dataset.id;go('forkOne');break;
@@ -2433,6 +2478,7 @@ function handleInput(e){
     case 'forkName':{const fk=S.forks.find(x=>x.id===S.ui.openFork);if(fk){fk.name=el.value;save();}break;}
     case 'forkDesc':{const fk=S.forks.find(x=>x.id===S.ui.openFork);if(fk){fk.desc=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'forkOptLabel':{const fk=S.forks.find(x=>x.id===el.dataset.fk);const o=fk&&(fk.options||[]).find(x=>x.id===el.dataset.id);if(o){o.label=el.value;save();}break;}
+    case 'gapN':{const sc=curScene();if(sc){const v=parseFloat(el.value);if(!isNaN(v)&&v>0){sc.gap={n:v,unit:(sc.gap&&sc.gap.unit)||'day'};}else{delete sc.gap;}save();}break;}
     case 'poemTitle':{const p=(S.poems||[]).find(x=>x.id===S.ui.openPoem);if(p){p.title=el.value;save();}break;}
     case 'annNote':if(annDraft){annDraft.note=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';}break;
     case 'fragText':{const fr=S.fragments.find(x=>x.id===S.ui.openFrag);if(fr){fr.text=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
