@@ -375,6 +375,10 @@
   .ann-line{font-family:var(--serif);font-size:16px;line-height:1.35}
   .ann-note{font-size:13px;color:var(--muted);margin-top:3px}
   .ann-src{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:5px;letter-spacing:.03em}
+  .branch-banner{display:flex;align-items:center;gap:8px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:11px;padding:9px 12px;margin-bottom:12px;font-size:13px}
+  .branch-banner>svg{width:15px;height:15px;color:var(--gold);flex:none}
+  .branch-banner span{flex:1;min-width:0}
+  .branch-banner b{font-weight:700}
 </style>
 </head>
 <body>
@@ -927,22 +931,27 @@ function viewSpine(){
   const hasRail=!!(fc&&fc.traits.length);
   const filt=S.ui.filter;
   const fmatch=s=>!filt||(filt.kind==='thread'?(s.threads||[]).includes(filt.id):(s.themes||[]).includes(filt.id));
+  const br=S.ui.branch;
+  const bshow=s=>{if(!br)return true;const tag=s.forks&&s.forks[br.fork];if(!tag||tag==='both')return true;return tag===br.option;};
+  const smatch=s=>fmatch(s)&&bshow(s);
+  let banner='';
+  if(br){const _fk=S.forks.find(x=>x.id===br.fork);const _op=_fk&&(_fk.options||[]).find(o=>o.id===br.option);banner=`<div class="branch-banner">${ICON.branch}<span>Branch — <b>${esc(_fk?_fk.name||'fork':'fork')}</b>: ${esc(_op?_op.label||'option':'option')}</span><button class="btn sm ghost" data-act="clearBranch">Show all</button></div>`;}
   const forceOpen=hasRail||!!filt;
-  let h=`<div class="view">${focusBar()}${filterBar()}<div class="spine ${hasRail?'has-rail':''}" id="spine">`;
+  let h=`<div class="view">${banner}${focusBar()}${filterBar()}<div class="spine ${hasRail?'has-rail':''}" id="spine">`;
   if(hasRail){const tr=fc.traits.find(t=>t.id===S.ui.focusTrait)||fc.traits[0];
     h+=`<div class="rail-head"><span>${esc(tr.poleLow||'—')}</span><span>${esc(tr.poleHigh||'—')}</span></div>`;}
   S.books.forEach(b=>{
-    const ms=milestonesOf(b.id), loose=looseOf(b.id).filter(fmatch);
-    const hasAny=loose.length||ms.some(m=>scenesOfMs(m.id).some(fmatch));
-    if(filt&&!hasAny)return;
+    const ms=milestonesOf(b.id), loose=looseOf(b.id).filter(smatch);
+    const hasAny=loose.length||ms.some(m=>scenesOfMs(m.id).some(smatch));
+    if((filt||br)&&!hasAny)return;
     h+=`<div class="book-head" data-book="${b.id}"><span class="bk">${esc(b.name)}</span><span class="ln"></span>
       <button class="addms" data-act="addMs" data-book="${b.id}">${ICON.plus} milestone</button></div>`;
     if(loose.length){ h+=`<div class="ms open"><div class="ms-body" style="margin-left:6px;border:none;padding-left:0">
       <div class="ms-add" style="color:var(--faint);font-style:italic">Loose — not under a milestone yet</div>`;
       loose.forEach((s,i)=>h+=sceneRow(s,i,loose.length)); h+=`</div></div>`; }
     ms.forEach((m,mi)=>{
-      const full=scenesOfMs(m.id),list=filt?full.filter(fmatch):full;
-      if(filt&&!list.length)return;
+      const full=scenesOfMs(m.id),list=full.filter(smatch);
+      if((filt||br)&&!list.length)return;
       const open=forceOpen||!!S.ui.open[m.id];
       h+=`<div class="ms ${open?'open':''}">
         <div class="ms-head" data-act="toggleMs" data-id="${m.id}">
@@ -2258,11 +2267,13 @@ function handleClick(e){
     case 'goThreads':go('threads');break;
     case 'goIdeas':go('ideas');break;
     case 'goForks':go('forks');break;
+    case 'viewBranch':S.ui.branch={fork:el.dataset.fk,option:el.dataset.id};go('spine');break;
+    case 'clearBranch':S.ui.branch=null;render();break;
     case 'openFork':S.ui.openFork=el.dataset.id;go('forkOne');break;
     case 'addFork':{const fk={id:uid(),name:'',desc:'',options:[{id:uid(),label:''},{id:uid(),label:''}],t:Date.now()};S.forks.push(fk);S.ui.openFork=fk.id;go('forkOne');break;}
     case 'delForkOne':{const fk=S.forks.find(x=>x.id===S.ui.openFork);if(fk&&confirm(`Delete fork "${fk.name||'Untitled'}"? Scene tags for it are removed too.`)){S.scenes.forEach(sc=>{if(sc.forks)delete sc.forks[fk.id];});S.forks=S.forks.filter(x=>x.id!==S.ui.openFork);if(S.ui.branch&&S.ui.branch.fork===fk.id)S.ui.branch=null;go('forks');}break;}
     case 'addForkOption':{const fk=S.forks.find(x=>x.id===el.dataset.fk);if(fk){fk.options=fk.options||[];fk.options.push({id:uid(),label:''});forkPage();}break;}
-    case 'delForkOption':{const fk=S.forks.find(x=>x.id===el.dataset.fk);if(fk){fk.options=(fk.options||[]).filter(o=>o.id!==el.dataset.id);S.scenes.forEach(sc=>{if(sc.forks&&sc.forks[fk.id]===el.dataset.id)delete sc.forks[fk.id];});forkPage();}break;}
+    case 'delForkOption':{const fk=S.forks.find(x=>x.id===el.dataset.fk);if(fk){fk.options=(fk.options||[]).filter(o=>o.id!==el.dataset.id);S.scenes.forEach(sc=>{if(sc.forks&&sc.forks[fk.id]===el.dataset.id)delete sc.forks[fk.id];});if(S.ui.branch&&S.ui.branch.fork===fk.id&&S.ui.branch.option===el.dataset.id)S.ui.branch=null;forkPage();}break;}
     case 'sceneFork':{const sc=curScene();if(sc){sc.forks=sc.forks||{};if(el.dataset.v)sc.forks[el.dataset.fk]=el.dataset.v;else delete sc.forks[el.dataset.fk];sceneEditor();}break;}
     case 'openIdea':S.ui.openIdea=el.dataset.id;go('ideaOne');break;
     case 'addIdea':{const n={id:uid(),title:'',body:'',t:Date.now()};S.ideas.push(n);S.ui.openIdea=n.id;go('ideaOne');break;}
