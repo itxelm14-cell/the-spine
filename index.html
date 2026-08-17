@@ -371,6 +371,10 @@
   .dlg-mark{background:var(--gold-dim);border-bottom:2px solid var(--gold);border-radius:4px;cursor:pointer;padding:1px 3px;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:var(--gold-dim)}
   .dlg-mark:active{background:var(--gold-dim)}
   .ann-mark{border-radius:4px;padding:1px 3px;border-bottom:2px solid transparent;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+  .ann-row{background:var(--surface);border:1px solid var(--border-soft);border-left:3px solid var(--gold);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  .ann-line{font-family:var(--serif);font-size:16px;line-height:1.35}
+  .ann-note{font-size:13px;color:var(--muted);margin-top:3px}
+  .ann-src{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:5px;letter-spacing:.03em}
 </style>
 </head>
 <body>
@@ -807,6 +811,7 @@ function renderPoetry(){
   const v=S.ui.view||'poems';
   if(v==='poemOne')return poemPage();
   if(v==='annOne')return annPage();
+  if(v==='rewrites'||v==='faves'){root.innerHTML=(v==='rewrites'?rewritesView():favesView());renderPoetryNav('poems');bind();save();return;}
   const body={poems:poemsView,fragments:fragmentsView,ptthemes:ptThemesView}[v]||poemsView;
   root.innerHTML=poetryTopbar(v)+body();
   renderPoetryNav(v);bind();save();
@@ -832,7 +837,8 @@ function poemsView(){
       <div style="flex:1;min-width:0"><div class="rt">${esc(p.title||'Untitled')}</div><div class="rs">${esc(p.status||'Draft')}${th?' · '+esc(th):''}</div></div>
       <span class="ms-tools" style="flex:none"><button data-act="poemUp" data-id="${p.id}" ${i===0?'disabled style=opacity:.3':''}>${ICON.up}</button><button data-act="poemDown" data-id="${p.id}" ${i===S.poems.length-1?'disabled style=opacity:.3':''}>${ICON.down}</button></span>
       <span class="chev">${ICON.chevR}</span></div>`;}).join('');
-  return `<div class="view"><div class="eyebrow">Poems — in order</div>
+  return `<div class="view"><div style="display:flex;gap:8px;margin-bottom:16px"><button class="btn ghost sm" data-act="goRewrites" style="flex:1">${ICON.feather} Rewrite notes${(function(){const n=allPoemAnnotations().filter(({a})=>['rewrite','word','meaning','rhythm'].includes(a.kind)).length;return n?' · '+n:'';})()}</button><button class="btn ghost sm" data-act="goFaves" style="flex:1">★ Favourite lines${(function(){const n=allPoemAnnotations().filter(({a})=>a.kind==='love').length;return n?' · '+n:'';})()}</button></div>
+    <div class="eyebrow">Poems — in order</div>
     ${S.poems.length?rows:`<div class="empty"><div class="mk">No poems yet.</div><p>Start the collection. Poems keep the order you set here — the shape of the eventual book.</p></div>`}
     <button class="btn gold" style="width:100%;margin-top:6px" data-act="addPoem">${ICON.plus} New poem</button></div>`;
 }
@@ -2049,6 +2055,26 @@ function annSave(){
   else{S.fragments=S.fragments.filter(fr=>fr.annId!==d.id);}
   annReturn(poem.id);
 }
+function allPoemAnnotations(){let out=[];(S.poems||[]).forEach(p=>(p.annotations||[]).forEach(a=>out.push({a,poem:p})));return out;}
+function rewritesView(){
+  const kinds=['rewrite','word','meaning','rhythm'];
+  const all=allPoemAnnotations().filter(({a})=>kinds.includes(a.kind));
+  const bar=`<div class="editor-bar"><button class="backbtn" data-act="goPoems">${ICON.back} Poems</button></div>`;
+  if(!all.length)return `${bar}<div class="view"><div class="empty"><div class="mk">No rewrite notes yet.</div><p>Flag lines as Needs rewrite, Word choice, Meaning, or Rhythm inside a poem, and they'll gather here to work through.</p></div></div>`;
+  let body='';
+  kinds.forEach(k=>{const items=all.filter(({a})=>a.kind===k);if(!items.length)return;
+    body+=`<div class="eyebrow" style="color:${annColor(k)}">${annLabel(k)} · ${items.length}</div>`;
+    body+=items.map(({a,poem})=>`<div class="ann-row" data-act="openPoem" data-id="${poem.id}" style="border-left-color:${annColor(k)}"><div class="ann-line" style="white-space:pre-wrap">${esc(a.text)}</div>${a.note?`<div class="ann-note">${esc(a.note)}</div>`:''}<div class="ann-src">${esc(poem.title||'Untitled')}</div></div>`).join('');
+  });
+  return `${bar}<div class="view"><div class="hint" style="margin:2px 0 14px">Every line you flagged for revision, gathered across the collection. Tap one to jump to its poem.</div>${body}</div>`;
+}
+function favesView(){
+  const items=allPoemAnnotations().filter(({a})=>a.kind==='love');
+  const bar=`<div class="editor-bar"><button class="backbtn" data-act="goPoems">${ICON.back} Poems</button></div>`;
+  if(!items.length)return `${bar}<div class="view"><div class="empty"><div class="mk">No favourite lines yet.</div><p>Mark lines as “Line I love” inside a poem and your best lines collect here.</p></div></div>`;
+  const rows=items.map(({a,poem})=>`<div class="ann-row" data-act="openPoem" data-id="${poem.id}" style="border-left-color:${annColor('love')}"><div class="ann-line" style="white-space:pre-wrap">${esc(a.text)}</div>${a.note?`<div class="ann-note">${esc(a.note)}</div>`:''}<div class="ann-src">${esc(poem.title||'Untitled')}</div></div>`).join('');
+  return `${bar}<div class="view"><div class="hint" style="margin:2px 0 14px">Your best lines, collected from across the whole collection.</div>${rows}</div>`;
+}
 const A=e=>e.target.closest('[data-act]');
 function curScene(){return S.scenes.find(x=>x.id===S.ui.editScene);}
 function findTrait(t){return charById(S.ui.openCast)?.traits.find(x=>x.id===t);}
@@ -2065,6 +2091,8 @@ function handleClick(e){
     case 'newProject':newProjectSheet();break;
     case 'createProject':createProject(el.dataset.t);break;
     case 'goPoems':go('poems');break;
+    case 'goRewrites':go('rewrites');break;
+    case 'goFaves':go('faves');break;
     case 'annKind':if(annDraft){annDraft.kind=el.dataset.v;annPage();}break;
     case 'annSave':annSave();break;
     case 'annCancel':annCancel();break;
