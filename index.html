@@ -417,6 +417,17 @@
   .book-flipnav{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft)}
   .book-flipnav .btn{flex:1}
   .book-flipnav .book-num{flex:none;padding:0 6px}
+  .book-cols{display:flex;gap:14px;align-items:flex-start}
+  .book-main{flex:1;min-width:0}
+  .book-aside{width:90px;flex:none;position:sticky;top:66px;max-height:calc(100vh - 150px);overflow-y:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:11px;padding:2px 0 8px}
+  .ba-sec{display:flex;flex-direction:column;gap:5px}
+  .ba-lbl{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .ba-avs{display:flex;flex-wrap:wrap;gap:4px}
+  .ba-av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:600;color:var(--on-swatch)}
+  .ba-chip{font-size:10.5px;padding:3px 8px;border-radius:999px;background:var(--surface);border:1px solid var(--border-soft);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .ba-line{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);line-height:1.2}
+  .ba-dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .ba-dots{display:flex;flex-wrap:wrap;gap:4px}
 </style>
 </head>
 <body>
@@ -891,11 +902,35 @@ function bookToolbar(poetry){
   return `<div class="book-toolbar"><div class="seg-row"><button class="seg ${mode==='scroll'?'on':''}" data-act="bookMode" data-v="scroll">Scroll</button><button class="seg ${mode==='flip'?'on':''}" data-act="bookMode" data-v="flip">Page</button></div>${tag}</div>`;
 }
 function bookItems(){const ap=activeProject();return (ap&&ap.type==='poetry')?(S.poems||[]):flatScenes();}
+function sceneAsideHTML(s){
+  const chars=(s.characters||[]).map(charById).filter(Boolean);
+  const loc=s.location&&locById(s.location);
+  const threads=(s.threads||[]).map(id=>S.threads.find(t=>t.id===id)).filter(Boolean);
+  const themes=(s.themes||[]).map(id=>S.themes.find(t=>t.id===id)).filter(Boolean);
+  const dlgN=(S.dialogue||[]).filter(x=>x.scene===s.id).length;
+  let secs=[];
+  if(chars.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Who</div><div class="ba-avs">${chars.map(c=>`<span class="ba-av" style="background:${c.color}" title="${esc(c.name)}">${esc(initials(c.name))}</span>`).join('')}</div></div>`);
+  if(loc)secs.push(`<div class="ba-sec"><div class="ba-lbl">Where</div><span class="ba-chip" style="color:${loc.color}">${esc(loc.name)}</span></div>`);
+  if(threads.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Threads</div>${threads.map(t=>`<div class="ba-line"><span class="ba-dot" style="background:${t.color}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name)}</span></div>`).join('')}</div>`);
+  if(themes.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Themes</div><div class="ba-dots">${themes.map(t=>`<span class="ba-dot" style="background:transparent;border:1.5px solid ${t.color||'var(--faint)'}" title="${esc(t.name)}"></span>`).join('')}</div></div>`);
+  if(dlgN)secs.push(`<div class="ba-sec"><div class="ba-line">💬 ${dlgN} line${dlgN>1?'s':''}</div></div>`);
+  return secs.length?`<div class="book-aside">${secs.join('')}</div>`:'';
+}
+function poemAsideHTML(p){
+  const themes=(p.themes||[]).map(id=>S.ptthemes.find(t=>t.id===id)).filter(Boolean);
+  const mood=(p.mood||[]);
+  let secs=[];
+  secs.push(`<div class="ba-sec"><div class="ba-lbl">Status</div><span class="ba-chip">${esc(p.status||'Draft')}</span></div>`);
+  if(themes.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Themes</div>${themes.map(t=>`<span class="ba-chip">${esc(t.name||'theme')}</span>`).join('')}</div>`);
+  if(mood.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Mood</div>${mood.map(m=>`<span class="ba-chip">${esc(m)}</span>`).join('')}</div>`);
+  return `<div class="book-aside">${secs.join('')}</div>`;
+}
 function bookPageHTML(it,poetry){
   const title=poetry?(it.title||''):(it.gist||'');
   const ph=poetry?'Title':'What happens, in a line…';
-  return `<input class="book-title" data-act="bookTitle" data-id="${it.id}" value="${esc(title)}" placeholder="${ph}">
-    <textarea class="book-body" data-act="bookBody" data-id="${it.id}" placeholder="Write…">${esc(it.body||'')}</textarea>`;
+  const aside=poetry?poemAsideHTML(it):sceneAsideHTML(it);
+  return `<div class="book-cols"><div class="book-main"><input class="book-title" data-act="bookTitle" data-id="${it.id}" value="${esc(title)}" placeholder="${ph}">
+    <textarea class="book-body" data-act="bookBody" data-id="${it.id}" placeholder="Write…">${esc(it.body||'')}</textarea></div>${aside}</div>`;
 }
 function poemBookView(){return bookRender(true);}
 function storyBookView(){return bookRender(false);}
