@@ -909,41 +909,56 @@ document.addEventListener('selectionchange',function(){
   }
 });
 function bookAutosize(){root.querySelectorAll('textarea.book-body').forEach(function(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});}
+function bookInfoLevel(){if(S.ui.bookInfo)return S.ui.bookInfo;try{return (window.innerWidth>=900)?'full':'brief';}catch(e){return 'brief';}}
 function bookToolbar(poetry){
+  const lvl=bookInfoLevel();const ilab=lvl==='hide'?'off':(lvl==='full'?'detailed':'brief');
   const mode=S.ui.bookMode||'scroll';
   const tag=poetry
     ?`<button class="btn sm book-tagbtn" data-act="bookTag" onpointerdown="event.preventDefault()">+ Note</button>`
     :`<button class="btn sm book-tagbtn" data-act="bookTag" onpointerdown="event.preventDefault()">+ Dialogue</button>`;
-  return `<div class="book-toolbar"><div class="seg-row"><button class="seg ${mode==='scroll'?'on':''}" data-act="bookMode" data-v="scroll">Scroll</button><button class="seg ${mode==='flip'?'on':''}" data-act="bookMode" data-v="flip">Page</button></div>${tag}</div>`;
+  return `<div class="book-toolbar"><div class="seg-row"><button class="seg ${mode==='scroll'?'on':''}" data-act="bookMode" data-v="scroll">Scroll</button><button class="seg ${mode==='flip'?'on':''}" data-act="bookMode" data-v="flip">Page</button></div><button class="btn sm book-tagbtn" data-act="bookInfoCycle" title="Show / hide chapter info">Info · ${ilab}</button>${tag}</div>`;
 }
 function bookItems(){const ap=activeProject();return (ap&&ap.type==='poetry')?(S.poems||[]):flatScenes();}
-function sceneAsideHTML(s){
+function sceneAsideHTML(s,lvl){
+  const full=lvl==='full';
   const chars=(s.characters||[]).map(charById).filter(Boolean);
   const loc=s.location&&locById(s.location);
   const threads=(s.threads||[]).map(id=>S.threads.find(t=>t.id===id)).filter(Boolean);
   const themes=(s.themes||[]).map(id=>S.themes.find(t=>t.id===id)).filter(Boolean);
   const dlgN=(S.dialogue||[]).filter(x=>x.scene===s.id).length;
+  const words=((s.body||'').trim().match(/\S+/g)||[]).length;
   let secs=[];
-  if(chars.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Who</div><div class="ba-avs">${chars.map(c=>`<span class="ba-av" style="background:${c.color}" title="${esc(c.name)}">${esc(initials(c.name))}</span>`).join('')}</div></div>`);
+  if(chars.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Who</div>${full?chars.map(c=>`<div class="ba-line"><span class="ba-dot" style="background:${c.color}"></span>${esc(c.name)}</div>`).join(''):`<div class="ba-avs">${chars.map(c=>`<span class="ba-av" style="background:${c.color}" title="${esc(c.name)}">${esc(initials(c.name))}</span>`).join('')}</div>`}</div>`);
   if(loc)secs.push(`<div class="ba-sec"><div class="ba-lbl">Where</div><span class="ba-chip" style="color:${loc.color}">${esc(loc.name)}</span></div>`);
+  if(full){const bk=bookById(s.book);const ms=s.milestone&&S.milestones.find(m=>m.id===s.milestone);
+    secs.push(`<div class="ba-sec"><div class="ba-lbl">Place</div><div class="ba-line">${esc(bk?bk.name:'—')}</div>${ms?`<div class="ba-line" style="color:var(--gold)">${esc(ms.name)}</div>`:'<div class="ba-line" style="color:var(--faint)">loose</div>'}</div>`);}
   if(threads.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Threads</div>${threads.map(t=>`<div class="ba-line"><span class="ba-dot" style="background:${t.color}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name)}</span></div>`).join('')}</div>`);
-  if(themes.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Themes</div><div class="ba-dots">${themes.map(t=>`<span class="ba-dot" style="background:transparent;border:1.5px solid ${t.color||'var(--faint)'}" title="${esc(t.name)}"></span>`).join('')}</div></div>`);
+  if(themes.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Themes</div>${full?themes.map(t=>`<div class="ba-line"><span class="ba-dot" style="background:transparent;border:1.5px solid ${t.color||'var(--faint)'}"></span>${esc(t.name)}</div>`).join(''):`<div class="ba-dots">${themes.map(t=>`<span class="ba-dot" style="background:transparent;border:1.5px solid ${t.color||'var(--faint)'}" title="${esc(t.name)}"></span>`).join('')}</div>`}</div>`);
+  if(full&&(s.purpose||[]).length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Does</div><div class="ba-dots">${s.purpose.map(p=>`<span class="ba-chip">${esc(p)}</span>`).join('')}</div></div>`);
   if(dlgN)secs.push(`<div class="ba-sec"><div class="ba-line">💬 ${dlgN} line${dlgN>1?'s':''}</div></div>`);
+  if(full)secs.push(`<div class="ba-sec"><div class="ba-line" style="color:var(--faint)">${words} word${words!==1?'s':''}</div></div>`);
   return secs.length?`<div class="book-aside">${secs.join('')}</div>`:'';
 }
-function poemAsideHTML(p){
+function poemAsideHTML(p,lvl){
+  const full=lvl==='full';
   const themes=(p.themes||[]).map(id=>S.ptthemes.find(t=>t.id===id)).filter(Boolean);
-  const mood=(p.mood||[]);
+  const mood=(p.mood||[]);const motifs=(p.motifs||[]);
+  const sec=p.section&&S.sections.find(x=>x.id===p.section);
+  const words=((p.body||'').trim().match(/\S+/g)||[]).length;const annN=(p.annotations||[]).length;
   let secs=[];
   secs.push(`<div class="ba-sec"><div class="ba-lbl">Status</div><span class="ba-chip">${esc(p.status||'Draft')}</span></div>`);
+  if(full&&sec)secs.push(`<div class="ba-sec"><div class="ba-lbl">Section</div><span class="ba-chip">${esc(sec.name)}</span></div>`);
   if(themes.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Themes</div>${themes.map(t=>`<span class="ba-chip">${esc(t.name||'theme')}</span>`).join('')}</div>`);
   if(mood.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Mood</div>${mood.map(m=>`<span class="ba-chip">${esc(m)}</span>`).join('')}</div>`);
+  if(full&&motifs.length)secs.push(`<div class="ba-sec"><div class="ba-lbl">Motifs</div>${motifs.map(m=>`<span class="ba-chip">${esc(m)}</span>`).join('')}</div>`);
+  if(full&&annN)secs.push(`<div class="ba-sec"><div class="ba-line">${annN} note${annN!==1?'s':''}</div></div>`);
+  if(full)secs.push(`<div class="ba-sec"><div class="ba-line" style="color:var(--faint)">${words} word${words!==1?'s':''}</div></div>`);
   return `<div class="book-aside">${secs.join('')}</div>`;
 }
 function bookPageHTML(it,poetry){
   const title=poetry?(it.title||''):(it.gist||'');
   const ph=poetry?'Title':'What happens, in a line…';
-  const aside=poetry?poemAsideHTML(it):sceneAsideHTML(it);
+  const lvl=bookInfoLevel();const aside=lvl==='hide'?'':(poetry?poemAsideHTML(it,lvl):sceneAsideHTML(it,lvl));
   return `<div class="book-cols"><div class="book-main"><input class="book-title" data-act="bookTitle" data-id="${it.id}" value="${esc(title)}" placeholder="${ph}">
     <textarea class="book-body" data-act="bookBody" data-id="${it.id}" placeholder="Write…">${esc(it.body||'')}</textarea></div>${aside}</div>`;
 }
@@ -2468,6 +2483,7 @@ function handleClick(e){
     case 'bookPrev':bookTurn(-1);break;
     case 'bookNext':bookTurn(1);break;
     case 'bookTag':bookTag();break;
+    case 'bookInfoCycle':{const cur=bookInfoLevel();S.ui.bookInfo=(cur==='hide'?'brief':(cur==='brief'?'full':'hide'));render();break;}
     case 'gapUnit':{const sc=curScene();if(sc){sc.gap={n:(sc.gap&&sc.gap.n)||1,unit:el.dataset.v};sceneEditor();}break;}
     case 'gapClear':{const sc=curScene();if(sc){delete sc.gap;sceneEditor();}break;}
     case 'viewBranch':S.ui.branch={fork:el.dataset.fk,option:el.dataset.id};go('spine');break;
