@@ -428,6 +428,20 @@
   .ba-line{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);line-height:1.2}
   .ba-dot{width:9px;height:9px;border-radius:50%;flex:none}
   .ba-dots{display:flex;flex-wrap:wrap;gap:4px}
+  @media(min-width:900px){
+    html.book-mode .app{max-width:860px}
+    html.book-mode .nav-inner{max-width:860px}
+    html.book-mode .book-wrap{max-width:860px}
+    html.book-mode .book-body{font-size:21px;line-height:1.72}
+    html.book-mode .book-title{font-size:30px}
+    html.book-mode .book-page.flip{min-height:62vh}
+    html.book-mode .book-aside{width:140px;top:70px}
+    html.book-mode .ba-av{width:26px;height:26px;font-size:10px}
+    html.book-mode .ba-chip{font-size:12px;padding:4px 10px}
+    html.book-mode .ba-lbl{font-size:9px}
+    html.book-mode .ba-line{font-size:12px}
+    html.book-mode .ba-dot{width:11px;height:11px}
+  }
 </style>
 </head>
 <body>
@@ -782,6 +796,7 @@ function bondStageAtScene(a,b,sceneId){const pts=bondPoints(a,b);let cur=null;fo
 
 const root=document.getElementById('root');
 function render(){
+  try{document.documentElement.classList.toggle('book-mode', !!LIB.activeId && !!(S&&S.ui&&S.ui.view==='book'));}catch(e){}
   if(!LIB.activeId) return renderHome();
   const _ap=activeProject();
   if(_ap&&_ap.type==='poetry'){ if(S!==_ap.data)S=_ap.data; return renderPoetry(); }
