@@ -13,15 +13,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
+    /* Midnight (default) */
     --bg:#15131e; --surface:#1e1b29; --raised:#262234; --raised2:#2d2940;
     --border:#332e46; --border-soft:#2a2638;
     --ink:#ece6dc; --muted:#9a8fb0; --faint:#6f6786;
     --gold:#f2c879; --gold-dim:rgba(242,200,121,.16);
+    --on-accent:#1a1626; --on-swatch:#1a1626;
+    --bg-0:rgba(21,19,30,0); --scrim:rgba(8,7,12,.6);
     --serif:'Cormorant Garamond',Georgia,serif;
     --sans:'Inter',system-ui,-apple-system,sans-serif;
     --mono:ui-monospace,'SF Mono',Menlo,monospace;
     --rail:90px;
   }
+  /* Paper — warm off-white, ink text, earthy clay accent, subtle grain */
+  :root[data-theme="paper"]{
+    --bg:#ece3d4; --surface:#f6efe2; --raised:#eadfca; --raised2:#e2d5bc;
+    --border:#d4c6ab; --border-soft:#e0d4bb;
+    --ink:#2e2920; --muted:#6a6252; --faint:#9a917d;
+    --gold:#9a6b47; --gold-dim:rgba(154,107,71,.15);
+    --on-accent:#f6efe2; --on-swatch:#2e2920;
+    --bg-0:rgba(236,227,212,0); --scrim:rgba(58,48,34,.40);
+  }
+  [data-theme="paper"] body{background-color:var(--bg);background-image:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='160'%20height='160'%3E%3Cfilter%20id='p'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.7'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20type='saturate'%20values='0'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url%28%23p%29'%20opacity='0.5'/%3E%3C/svg%3E");background-size:150px 150px;background-blend-mode:multiply}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
   body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;
@@ -33,7 +46,7 @@
   textarea{resize:none}
   :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
 
-  .topbar{position:sticky;top:0;z-index:40;background:linear-gradient(var(--bg) 72%,rgba(21,19,30,0));
+  .topbar{position:sticky;top:0;z-index:40;background:linear-gradient(var(--bg) 72%,var(--bg-0));
     display:flex;align-items:center;justify-content:space-between;padding:calc(14px + env(safe-area-inset-top)) 18px 12px}
   .brand{font-family:var(--serif);font-weight:600;font-size:25px;letter-spacing:.3px;line-height:1}
   .brand small{font-family:var(--sans);font-weight:500;font-size:11px;letter-spacing:.18em;
@@ -51,7 +64,7 @@
   .focusbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0 12px}
   .pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);
     border-radius:999px;padding:7px 12px;font-size:13px;color:var(--muted)}
-  .pill.on{color:var(--bg);background:var(--gold);border-color:var(--gold);font-weight:600}
+  .pill.on{color:var(--on-accent);background:var(--gold);border-color:var(--gold);font-weight:600}
   .pill select{background:none;border:none;color:inherit;font-weight:600;font-size:13px;appearance:none}
   .pill select option{color:#000}
   .pill .dot{width:9px;height:9px;border-radius:50%}
@@ -93,7 +106,7 @@
   .sc-sub{display:flex;align-items:center;gap:6px;margin-top:5px}
   .who{display:flex}
   .who .av{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:600;
-    color:#1a1626;margin-left:-5px;border:1.5px solid var(--surface)}
+    color:var(--on-swatch);margin-left:-5px;border:1.5px solid var(--surface)}
   .who .av:first-child{margin-left:0}
   .loc-chip{font-size:10.5px;padding:2px 8px;border-radius:999px;font-weight:500;background:var(--raised);color:var(--muted)}
   .scene .sc-grip{display:grid;place-items:center;width:24px;color:var(--faint);touch-action:none;cursor:grab;flex:none;margin:-4px 0}
@@ -173,14 +186,14 @@
   .bal-fill{height:100%;border-radius:6px;min-width:3px}
   .bal-n{font-family:var(--mono);font-size:11px;color:var(--faint);width:22px;text-align:right}
   .rel-av{display:flex;flex:none}
-  .av2{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;color:#1a1626}
+  .av2{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--on-swatch)}
   .rel-av .av2:last-child{margin-left:-9px;border:2px solid var(--bg)}
   .rel-ev2{display:flex;justify-content:space-between;gap:10px;align-items:baseline;background:var(--surface);border:1px solid var(--border-soft);border-radius:11px;padding:10px 12px;margin-bottom:9px}
   .rel-when{font-family:var(--serif);font-size:15px}
   .rel-stage{font-family:var(--mono);font-size:11px;color:var(--gold);flex:none}
   .seg-row{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border-soft);border-radius:12px;padding:4px;margin-bottom:16px}
   .seg{flex:1;padding:8px 4px;border-radius:9px;font-size:13px;color:var(--muted);background:none;border:none;font-family:var(--sans);cursor:pointer}
-  .seg.on{background:var(--gold);color:#1a1626;font-weight:600}
+  .seg.on{background:var(--gold);color:var(--on-accent);font-weight:600}
   .rule-card{background:var(--surface);border:1px solid var(--border-soft);border-radius:13px;padding:13px 14px;margin-bottom:10px}
   .rule-top{display:flex;align-items:flex-start;gap:10px}
   .rule-txt{flex:1;font-family:var(--serif);font-size:17px;line-height:1.3}
@@ -207,7 +220,7 @@
   .conn-del{color:var(--faint)}.conn-del svg{width:14px;height:14px}
   .web-focus{display:flex;align-items:center;gap:12px;justify-content:center;width:100%;padding:16px;
     background:rgba(242,200,121,.07);border:1px solid rgba(242,200,121,.4);border-radius:16px;margin-bottom:4px}
-  .web-focus .swatch{display:grid;place-items:center;border-radius:13px;color:#1a1626;font-family:var(--serif);font-weight:600;font-size:18px}
+  .web-focus .swatch{display:grid;place-items:center;border-radius:13px;color:var(--on-swatch);font-family:var(--serif);font-weight:600;font-size:18px}
   .web-name{font-family:var(--serif);font-size:24px;font-weight:600}
   .web-branches{padding-left:18px;border-left:2px solid var(--border);margin:6px 0 0 24px}
   .branch{display:flex;align-items:center;gap:9px;margin:15px 0;position:relative;flex-wrap:wrap}
@@ -232,7 +245,7 @@
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:11px;padding:10px 15px;
     font-size:14px;font-weight:600;background:var(--raised);color:var(--ink);border:1px solid var(--border)}
   .btn:active{background:var(--raised2)}
-  .btn.gold{background:var(--gold);color:#1a1626;border-color:var(--gold)}
+  .btn.gold{background:var(--gold);color:var(--on-accent);border-color:var(--gold)}
   .btn.ghost{background:none;color:var(--muted)}
   .btn.sm{padding:7px 12px;font-size:13px;border-radius:9px}
   .btn.danger{color:#e89898}
@@ -243,7 +256,7 @@
   .row:active{border-color:var(--border)}
   .row.sub{margin-left:22px;padding:10px 13px;background:var(--raised)}
   .row .swatch{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-family:var(--serif);
-    font-size:17px;font-weight:600;color:#1a1626;flex:none}
+    font-size:17px;font-weight:600;color:var(--on-swatch);flex:none}
   .row.sub .swatch{width:28px;height:28px}
   .row .rt{font-family:var(--serif);font-size:20px;font-weight:600;line-height:1.1}
   .row.sub .rt{font-size:17px}
@@ -265,7 +278,7 @@
     border:1px solid var(--border);font-size:14px;color:var(--muted)}
   .chip:active{background:var(--raised)}
   .chip .dot{width:11px;height:11px;border-radius:50%}
-  .chip.on{border-color:transparent;color:#1a1626;font-weight:600;background:var(--gold)}
+  .chip.on{border-color:transparent;color:var(--on-accent);font-weight:600;background:var(--gold)}
   .chip.add{border-style:dashed;color:var(--faint)}
   .chip.sub{font-size:13px;padding:6px 11px;opacity:.92}
 
@@ -292,14 +305,14 @@
   .empty .btn{margin:0 5px}
 
   .nav{position:fixed;bottom:0;left:0;right:0;z-index:50;display:flex;justify-content:center;gap:4px;
-    padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:linear-gradient(rgba(21,19,30,0),var(--bg) 38%)}
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:linear-gradient(var(--bg-0),var(--bg) 38%)}
   .nav-inner{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:5px;max-width:560px;width:calc(100% - 28px)}
   .nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:11px;color:var(--faint);font-size:10.5px;font-weight:600;position:relative}
   .nav button svg{width:21px;height:21px}
   .nav button.on{color:var(--gold);background:var(--gold-dim)}
-  .nav .badge{position:absolute;transform:translate(13px,-7px);background:var(--gold);color:#1a1626;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:grid;place-items:center;padding:0 4px;font-family:var(--mono)}
+  .nav .badge{position:absolute;transform:translate(13px,-7px);background:var(--gold);color:var(--on-accent);font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:grid;place-items:center;padding:0 4px;font-family:var(--mono)}
 
-  .scrim{position:fixed;inset:0;background:rgba(8,7,12,.6);z-index:130;display:none;align-items:flex-end;padding-top:calc(env(safe-area-inset-top,0px) + 8px);animation:fade .2s}
+  .scrim{position:fixed;inset:0;background:var(--scrim);z-index:130;display:none;align-items:flex-end;padding-top:calc(env(safe-area-inset-top,0px) + 8px);animation:fade .2s}
   .scrim.show{display:flex}
   .sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:22px 22px 0 0;width:100%;max-width:560px;padding:8px 20px calc(28px + env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;animation:up .24s cubic-bezier(.2,.8,.2,1)}
   @keyframes up{from{transform:translateY(40px)}to{transform:none}}
@@ -388,6 +401,22 @@
   .clock-body{flex:1;min-width:0;padding-bottom:18px}
   .clock-gist{font-family:var(--serif);font-size:16px;line-height:1.3}
   .clock-elapsed{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:2px}
+  .book-wrap{max-width:660px;margin:0 auto}
+  .book-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+  .book-toolbar .seg-row{flex:1;margin-bottom:0}
+  .book-tagbtn{flex:none;white-space:nowrap}
+  .book-page{padding:6px 2px 10px}
+  .book-page.flip{min-height:58vh}
+  .book-page+.book-page{border-top:1px dashed var(--border);margin-top:6px;padding-top:20px}
+  .book-title{width:100%;font-family:var(--serif);font-size:25px;font-weight:600;border:none;background:none;color:var(--ink);outline:none;padding:2px 0;margin-bottom:8px}
+  .book-title::placeholder{color:var(--faint)}
+  .book-body{width:100%;border:none;background:none;font-family:var(--serif);font-size:19px;line-height:1.62;resize:none;outline:none;color:var(--ink);white-space:pre-wrap;min-height:40px;display:block}
+  .book-body::placeholder{color:var(--faint)}
+  .book-meta{display:flex;gap:10px;align-items:center;margin-top:6px}
+  .book-num{text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint);padding:10px 0 2px;letter-spacing:.08em}
+  .book-flipnav{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-soft)}
+  .book-flipnav .btn{flex:1}
+  .book-flipnav .book-num{flex:none;padding:0 6px}
 </style>
 </head>
 <body>
@@ -659,6 +688,7 @@ function migrateLib(raw){
   else if(looksStory(raw)) lib={version:3,projects:[{id:uid(),type:'story',name:'Series 1',createdAt:Date.now(),data:raw}],activeId:null};
   else lib={version:3,projects:[],activeId:null};
   lib.version=3; lib.projects=lib.projects||[];
+  if(raw&&raw.theme)lib.theme=raw.theme;
   lib.projects=lib.projects.map(function(p){
     p=p||{}; p.id=p.id||uid(); p.type=p.type||'story'; p.name=p.name||'Untitled'; p.createdAt=p.createdAt||Date.now();
     if(p.type==='story') p.data=migrate(p.data||seed()); else if(p.type==='poetry') p.data=migratePoetry(p.data); else p.data=p.data||{};
@@ -677,6 +707,20 @@ function loadLib(){
 let LIB=loadLib();
 function activeProject(){return LIB.projects.find(function(p){return p.id===LIB.activeId;})||null;}
 function persistLib(){try{localStorage.setItem(LIBKEY,JSON.stringify(LIB));}catch(e){}}
+/* ---- Themes (Midnight / Purple / Paper). Persisted in LIB so it syncs. ---- */
+const THEMES=[['midnight','Midnight'],['paper','Paper']];
+const THEME_BG={midnight:'#15131e',paper:'#ece3d4'};
+function currentTheme(){return (LIB&&LIB.theme)||localStorage.getItem('the-spine-theme')||'midnight';}
+function applyTheme(t){
+  t=t||currentTheme(); if(!THEME_BG[t])t='midnight';
+  const r=document.documentElement;
+  if(t==='midnight')r.removeAttribute('data-theme');else r.setAttribute('data-theme',t);
+  r.style.colorScheme=(t==='paper')?'light':'dark';
+  try{var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',THEME_BG[t]);}catch(e){}
+  try{var sb=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');if(sb)sb.setAttribute('content',t==='paper'?'default':'black-translucent');}catch(e){}
+}
+function setTheme(t){LIB.theme=t;try{localStorage.setItem('the-spine-theme',t);}catch(e){}applyTheme(t);persistLib();}
+applyTheme();
 function openProjectById(id){const p=LIB.projects.find(function(x){return x.id===id;});if(!p)return;LIB.activeId=id;if(p.type==='story'){S=p.data;S.ui.view=S.ui.view||'spine';}persistLib();}
 function moveProject(id,dir){const i=LIB.projects.findIndex(function(p){return p.id===id;});const j=i+dir;if(i<0||j<0||j>=LIB.projects.length)return;const a=LIB.projects[i];LIB.projects[i]=LIB.projects[j];LIB.projects[j]=a;persistLib();render();}
 let S=(activeProject()&&activeProject().data) || (LIB.projects[0]&&LIB.projects[0].data) || migrate(seed());
@@ -743,14 +787,14 @@ function render(){
   if(v==='dlgOne')return dlgPage();
   if(v==='ideaOne')return ideaPage();
   if(v==='forkOne')return forkPage();
-  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView,threads:threadsView,dialogue:dlgHubView,ideas:ideasView,forks:forksView,clock:clockView}[v]||viewSpine)();
-  renderNav();bind();
+  root.innerHTML=topbar()+({spine:viewSpine,capture:viewCapture,cast:viewCast,world:viewWorld,compare:cmpView,web:webView,heat:heatView,balance:balanceView,rels:relsView,themes:themesView,threads:threadsView,dialogue:dlgHubView,ideas:ideasView,forks:forksView,clock:clockView,book:storyBookView}[v]||viewSpine)();
+  renderNav();bind();bookAutosize();
   if(v==='spine'){drawRail();requestAnimationFrame(drawRail);setTimeout(drawRail,260);}
   if(v==='compare'){requestAnimationFrame(drawCompare);setTimeout(drawCompare,80);setTimeout(drawCompare,300);}
   save();
 }
 function topbar(){
-  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme',threads:'Storylines',threadOne:'A thread',dialogue:'Dialogue',ideas:'Plot & ideas',ideaOne:'A note',forks:'Forks',forkOne:'A fork',clock:'Story-clock'};
+  const t={spine:'The story, in order',capture:'Catch a moment',cast:'The cast',world:'The world',compare:'Two arcs, side by side',web:'How it all connects',heat:'Who appears where',balance:'The shape of the story',rels:'Between people',relOne:'Between people',objOne:'An object',orgOne:'A group',themes:'What it\u2019s about',themeOne:'A theme',threads:'Storylines',threadOne:'A thread',dialogue:'Dialogue',ideas:'Plot & ideas',ideaOne:'A note',forks:'Forks',forkOne:'A fork',clock:'Story-clock',book:'Read as a book'};
   const parent={compare:'spine',balance:'spine',themes:'spine',threads:'spine',ideas:'spine',forks:'spine',clock:'spine',heat:'cast',rels:'cast',web:'cast',dialogue:'cast'};
   const par=parent[S.ui.view];
   const back=par
@@ -830,6 +874,61 @@ function migratePoetry(d){
   d.ui=d.ui||{};d.ui.view=d.ui.view||'poems';
   return d;
 }
+let _bookSel=null;
+document.addEventListener('selectionchange',function(){
+  var el=document.activeElement;
+  if(el&&el.classList&&el.classList.contains('book-body')){
+    var s0=el.selectionStart,s1=el.selectionEnd;
+    if(s1>s0){var raw=el.value.slice(s0,s1);var lead=raw.length-raw.replace(/^\s+/,'').length,trail=raw.length-raw.replace(/\s+$/,'').length;_bookSel={id:el.dataset.id,start:s0+lead,end:s1-trail,text:raw.trim()};}
+  }
+});
+function bookAutosize(){root.querySelectorAll('textarea.book-body').forEach(function(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});}
+function bookToolbar(poetry){
+  const mode=S.ui.bookMode||'scroll';
+  const tag=poetry
+    ?`<button class="btn sm book-tagbtn" data-act="bookTag" onpointerdown="event.preventDefault()">+ Note</button>`
+    :`<button class="btn sm book-tagbtn" data-act="bookTag" onpointerdown="event.preventDefault()">+ Dialogue</button>`;
+  return `<div class="book-toolbar"><div class="seg-row"><button class="seg ${mode==='scroll'?'on':''}" data-act="bookMode" data-v="scroll">Scroll</button><button class="seg ${mode==='flip'?'on':''}" data-act="bookMode" data-v="flip">Page</button></div>${tag}</div>`;
+}
+function bookItems(){const ap=activeProject();return (ap&&ap.type==='poetry')?(S.poems||[]):flatScenes();}
+function bookPageHTML(it,poetry){
+  const title=poetry?(it.title||''):(it.gist||'');
+  const ph=poetry?'Title':'What happens, in a line…';
+  return `<input class="book-title" data-act="bookTitle" data-id="${it.id}" value="${esc(title)}" placeholder="${ph}">
+    <textarea class="book-body" data-act="bookBody" data-id="${it.id}" placeholder="Write…">${esc(it.body||'')}</textarea>`;
+}
+function poemBookView(){return bookRender(true);}
+function storyBookView(){return bookRender(false);}
+function bookRender(poetry){
+  const mode=S.ui.bookMode||'scroll';
+  const items=bookItems();
+  const emptyMsg=poetry?'Add poems in the Poems tab and they’ll appear here as pages.':'Add scenes on the Spine and they’ll appear here as pages.';
+  if(!items.length)return `<div class="view">${bookToolbar(poetry)}<div class="empty"><div class="mk">Nothing to read yet.</div><p>${emptyMsg}</p></div></div>`;
+  if(mode==='flip'){
+    let idx=S.ui.bookPage||0;if(idx>=items.length)idx=items.length-1;if(idx<0)idx=0;S.ui.bookPage=idx;
+    const it=items[idx];
+    return `<div class="view">${bookToolbar(poetry)}<div class="book-wrap" id="bookFlip"><div class="book-page flip">${bookPageHTML(it,poetry)}</div>
+      <div class="book-flipnav"><button class="btn ghost" data-act="bookPrev" ${idx===0?'disabled style=opacity:.4':''}>${ICON.back} Prev</button><span class="book-num">${idx+1} / ${items.length}</span><button class="btn ghost" data-act="bookNext" ${idx===items.length-1?'disabled style=opacity:.4':''}>Next</button></div>
+    </div></div>`;
+  }
+  const pages=items.map((it,i)=>`<div class="book-page">${bookPageHTML(it,poetry)}<div class="book-num">${i+1} / ${items.length}</div></div>`).join('');
+  return `<div class="view">${bookToolbar(poetry)}<div class="book-wrap">${pages}</div></div>`;
+}
+function bookTurn(dir){const n=bookItems().length;if(!n)return;let idx=(S.ui.bookPage||0)+dir;if(idx<0)idx=0;if(idx>n-1)idx=n-1;S.ui.bookPage=idx;render();window.scrollTo(0,0);}
+function bookTag(){
+  const ap=activeProject();const poetry=ap&&ap.type==='poetry';
+  const sel=_bookSel;
+  if(!sel||!sel.text){const c=document.getElementById('edovCount');document.title=document.title;return;}
+  const it=(poetry?(S.poems||[]):S.scenes).find(x=>x.id===sel.id);if(!it)return;
+  S.ui.bookReturn=true;
+  if(poetry){S.ui.openPoem=sel.id;openAnnCard({poem:sel.id,start:sel.start,end:sel.end,text:sel.text});}
+  else{S.ui.editScene=sel.id;openDialogCard({scene:sel.id,start:sel.start,end:sel.end,text:sel.text});}
+  _bookSel=null;
+}
+/* flip-mode swipe */
+let _bkSwipe={x:0,y:0,on:false};
+document.addEventListener('touchstart',function(e){if(S.ui.view!=='book'||(S.ui.bookMode||'scroll')!=='flip')return;var t=e.target;if(t&&(t.tagName==='TEXTAREA'||t.tagName==='INPUT'||t.closest('button')))return;var p=e.touches[0];_bkSwipe={x:p.clientX,y:p.clientY,on:true};},{passive:true});
+document.addEventListener('touchend',function(e){if(!_bkSwipe.on)return;_bkSwipe.on=false;var p=e.changedTouches[0];var dx=p.clientX-_bkSwipe.x,dy=p.clientY-_bkSwipe.y;if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.6){bookTurn(dx<0?1:-1);}},{passive:true});
 function renderPoetry(){
   const v=S.ui.view||'poems';
   if(v==='poemOne')return poemPage();
@@ -837,12 +936,12 @@ function renderPoetry(){
   if(v==='fragOne')return fragPage();
   if(v==='pthemeOne')return pthemePage();
   if(v==='rewrites'||v==='faves'){root.innerHTML=(v==='rewrites'?rewritesView():favesView());renderPoetryNav('poems');bind();save();return;}
-  const body={poems:poemsView,fragments:fragmentsView,ptthemes:ptThemesView}[v]||poemsView;
+  const body={poems:poemsView,fragments:fragmentsView,ptthemes:ptThemesView,book:poemBookView}[v]||poemsView;
   root.innerHTML=poetryTopbar(v)+body();
-  renderPoetryNav(v);bind();save();
+  renderPoetryNav(v);bind();bookAutosize();save();
 }
 function poetryTopbar(v){
-  const t={poems:'The collection',fragments:'Saved lines',ptthemes:'What they\u2019re about',poemOne:'A poem'};
+  const t={poems:'The collection',fragments:'Saved lines',ptthemes:'What they\u2019re about',poemOne:'A poem',book:'Read as a book'};
   const p=activeProject();
   return `<div class="topbar">
     <div style="display:flex;align-items:center;gap:9px;min-width:0;flex:1">
@@ -852,7 +951,7 @@ function poetryTopbar(v){
     <button class="iconbtn" data-act="settings" aria-label="Settings" style="flex:none">${ICON.gear}</button></div>`;
 }
 function renderPoetryNav(v){
-  const map=[['poems','Poems',ICON.spineN],['fragments','Fragments',ICON.gem],['ptthemes','Themes',ICON.mask]];
+  const map=[['poems','Poems',ICON.spineN],['book','Book',ICON.world],['fragments','Fragments',ICON.gem],['ptthemes','Themes',ICON.mask]];
   const active=v==='poemOne'?'poems':v;
   document.getElementById('nav').innerHTML=`<div class="nav-inner">${map.map(([k,lab,ic])=>`<button data-act="nav" data-v="${k}" class="${active===k?'on':''}">${ic}<span>${lab}</span></button>`).join('')}</div>`;
 }
@@ -993,7 +1092,7 @@ function filterBar(){
   const f=S.ui.filter;
   let b='<div class="focusbar" style="padding-top:0">';
   if(f){const t=(f.kind==='thread'?S.threads:S.themes).find(x=>x.id===f.id);
-    if(t){b+=`<button class="chip on" data-act="filterClear" style="${t.color?`background:${t.color};color:#1a1626`:''}">${f.kind}: ${esc(t.name)} ✕</button>`;}}
+    if(t){b+=`<button class="chip on" data-act="filterClear" style="${t.color?`background:${t.color};color:var(--on-swatch)`:''}">${f.kind}: ${esc(t.name)} ✕</button>`;}}
   b+=`<button class="chip" data-act="goIdeas">${ICON.feather} Ideas</button>`;
   b+=`<button class="chip" data-act="goThreads">${ICON.branch} Threads</button>`;
   b+=`<button class="chip" data-act="goForks">${ICON.branch} Forks</button>`;
@@ -1110,7 +1209,7 @@ function themeOne(){
   const t=S.themes.find(x=>x.id===S.ui.openTheme);if(!t){go('themes');return;}
   t.books=t.books||[];t.chars=t.chars||[];
   const bookChips=S.books.map(b=>`<button class="chip ${t.books.includes(b.id)?'on':''}" data-act="themeBook" data-id="${b.id}">${esc(b.name)}</button>`).join('');
-  const charChips=S.characters.map(c=>`<button class="chip ${t.chars.includes(c.id)?'on':''}" data-act="themeChar" data-id="${c.id}" style="${t.chars.includes(c.id)?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')||'<span class="hint">No characters yet.</span>';
+  const charChips=S.characters.map(c=>`<button class="chip ${t.chars.includes(c.id)?'on':''}" data-act="themeChar" data-id="${c.id}" style="${t.chars.includes(c.id)?`background:${c.color};color:var(--on-swatch)`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')||'<span class="hint">No characters yet.</span>';
   const scenes=flatScenes().filter(s=>(s.themes||[]).includes(t.id));
   const sceneList=scenes.length?scenes.map(s=>`<div class="conn-row"><span class="conn-lbl">${esc(bookById(s.book)?.name||'')}</span><button class="conn-to" data-act="openScene" data-id="${s.id}">“${esc((s.gist||'untitled').slice(0,30))}”</button></div>`).join(''):'<div class="hint">No scenes tagged yet — add this theme to scenes in the scene editor.</div>';
   root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goThemes">${ICON.back} Themes</button>
@@ -1144,7 +1243,7 @@ function threadOne(){
   const t=S.threads.find(x=>x.id===S.ui.openThread);if(!t){go('threads');return;}
   t.books=t.books||[];t.chars=t.chars||[];
   const bookChips=S.books.map(b=>`<button class="chip ${t.books.includes(b.id)?'on':''}" data-act="threadBook" data-id="${b.id}">${esc(b.name)}</button>`).join('');
-  const charChips=S.characters.map(c=>`<button class="chip ${t.chars.includes(c.id)?'on':''}" data-act="threadChar" data-id="${c.id}" style="${t.chars.includes(c.id)?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')||'<span class="hint">No characters yet.</span>';
+  const charChips=S.characters.map(c=>`<button class="chip ${t.chars.includes(c.id)?'on':''}" data-act="threadChar" data-id="${c.id}" style="${t.chars.includes(c.id)?`background:${c.color};color:var(--on-swatch)`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')||'<span class="hint">No characters yet.</span>';
   const scenes=flatScenes().filter(s=>(s.threads||[]).includes(t.id));
   const sceneList=scenes.length?scenes.map(s=>`<div class="conn-row"><span class="conn-lbl">${esc(bookById(s.book)?.name||'')}</span><button class="conn-to" data-act="openScene" data-id="${s.id}">“${esc((s.gist||'untitled').slice(0,30))}”</button></div>`).join(''):'<div class="hint">No scenes on this thread yet — tag them in the scene editor.</div>';
   root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goThreads">${ICON.back} Threads</button>
@@ -1220,7 +1319,7 @@ function cmpPicker(side){
   if(ch&&ch.traits.length){const t=ch.traits.find(x=>x.id===curT)||ch.traits[0];
     traitSel=`<span class="pill on"><span class="dot" style="background:${t.color}"></span><select data-act="cmpTrait" data-side="${side}">${ch.traits.map(x=>`<option value="${x.id}" ${t.id===x.id?'selected':''}>${esc(x.name||'arc')}</option>`).join('')}</select></span>`;}
   return `<div class="cmp-pick"><span class="tag">${side}</span>
-    <span class="pill ${cur?'on':''}" ${cur?`style="background:${ch.color};color:#1a1626;border-color:transparent"`:''}><select data-act="cmpChar" data-side="${side}"><option value="">choose…</option>${charOpts}</select></span>${traitSel}</div>`;
+    <span class="pill ${cur?'on':''}" ${cur?`style="background:${ch.color};color:var(--on-swatch);border-color:transparent"`:''}><select data-act="cmpChar" data-side="${side}"><option value="">choose…</option>${charOpts}</select></span>${traitSel}</div>`;
 }
 function cmpView(){
   const A=S.ui.cmpA&&charById(S.ui.cmpA), B=S.ui.cmpB&&charById(S.ui.cmpB);
@@ -1271,7 +1370,7 @@ function viewCapture(){
   const slips=S.slips.slice().reverse();
   const inbox=slips.map(sl=>{
     const bk=S.books.map(b=>`<button class="chip sub ${(sl.book||'b1')===b.id?'on':''}" data-act="slipBook" data-id="${sl.id}" data-b="${b.id}">${esc(b.name)}</button>`).join('');
-    const who=S.characters.map(c=>`<button class="chip sub ${(sl.characters||[]).includes(c.id)?'on':''}" data-act="slipChar" data-id="${sl.id}" data-c="${c.id}" style="${(sl.characters||[]).includes(c.id)?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')
+    const who=S.characters.map(c=>`<button class="chip sub ${(sl.characters||[]).includes(c.id)?'on':''}" data-act="slipChar" data-id="${sl.id}" data-c="${c.id}" style="${(sl.characters||[]).includes(c.id)?`background:${c.color};color:var(--on-swatch)`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')
       +`<button class="chip sub add" data-act="slipNewChar" data-id="${sl.id}">+ new</button>`;
     return `<div class="slip"><div class="txt">${esc(sl.text)}</div><div class="when">${fmt(sl.t)}</div>
       <div class="slip-lbl">Book</div><div class="chip-pick">${bk}</div>
@@ -1303,7 +1402,7 @@ function sceneEditor(){
     +`<button class="chip ${!s.milestone?'on':''}" data-act="setMs" data-id="">loose</button>`
     +`<button class="chip add" data-act="newMsHere" data-book="${s.book}">+ new</button>`;
   const charBtns=S.characters.map(c=>`<button class="chip ${present.includes(c.id)?'on':''}" data-act="togglePresent" data-id="${c.id}"
-      style="${present.includes(c.id)?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')
+      style="${present.includes(c.id)?`background:${c.color};color:var(--on-swatch)`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')
     +`<button class="chip add" data-act="quickChar">+ new</button>`;
 
   const traitBlocks=present.map(id=>{const c=charById(id);if(!c)return'';
@@ -1331,8 +1430,8 @@ function sceneEditor(){
   }
   const locBtns=S.locations.filter(l=>!l.parent).map(l=>{
     const kids=S.locations.filter(x=>x.parent===l.id);
-    return `<button class="chip ${s.location===l.id?'on':''}" data-act="setLoc" data-id="${l.id}" style="${s.location===l.id?`background:${l.color};color:#1a1626`:''}"><span class="dot" style="background:${l.color}"></span>${esc(l.name)}</button>`
-      +kids.map(k=>`<button class="chip sub ${s.location===k.id?'on':''}" data-act="setLoc" data-id="${k.id}" style="${s.location===k.id?`background:${k.color};color:#1a1626`:''}">↳ ${esc(k.name)}</button>`).join('');
+    return `<button class="chip ${s.location===l.id?'on':''}" data-act="setLoc" data-id="${l.id}" style="${s.location===l.id?`background:${l.color};color:var(--on-swatch)`:''}"><span class="dot" style="background:${l.color}"></span>${esc(l.name)}</button>`
+      +kids.map(k=>`<button class="chip sub ${s.location===k.id?'on':''}" data-act="setLoc" data-id="${k.id}" style="${s.location===k.id?`background:${k.color};color:var(--on-swatch)`:''}">↳ ${esc(k.name)}</button>`).join('');
   }).join('')+(s.location?`<button class="chip add" data-act="setLoc" data-id="">clear</button>`:'');
 
   let currentBlocks='';
@@ -1343,7 +1442,7 @@ function sceneEditor(){
         <div class="trait-line"><input type="range" min="1" max="10" value="${here}" data-act="curVal" data-cid="${id}" data-k="${d.key}"><span class="val" id="cur-${id}-${d.key}">${here}/10</span></div>
         <div class="hint" style="margin-top:4px">true nature ${trueV}${setHere&&here!==trueV?` · <span style="color:var(--gold)">acting ${here} here</span>`:''}${setHere?` · <button class="btn sm ghost" data-act="clearCur" data-cid="${id}" data-k="${d.key}" style="padding:0 7px">reset</button>`:''}</div></div>`;}).join('');
     currentBlocks+=`<div class="trait-set"><div class="ch-name"><span class="dot" style="width:11px;height:11px;border-radius:50%;background:${c.color}"></span>${esc(c.name)}</div>${rows}</div>`;});
-  const threadChips=S.threads.map(t=>`<button class="chip ${(s.threads||[]).includes(t.id)?'on':''}" data-act="toggleThread" data-id="${t.id}" style="${(s.threads||[]).includes(t.id)?`background:${t.color};color:#1a1626`:''}"><span class="dot" style="background:${t.color}"></span>${esc(t.name)}</button>`).join('')+`<button class="chip add" data-act="newThread">+ new</button>`;
+  const threadChips=S.threads.map(t=>`<button class="chip ${(s.threads||[]).includes(t.id)?'on':''}" data-act="toggleThread" data-id="${t.id}" style="${(s.threads||[]).includes(t.id)?`background:${t.color};color:var(--on-swatch)`:''}"><span class="dot" style="background:${t.color}"></span>${esc(t.name)}</button>`).join('')+`<button class="chip add" data-act="newThread">+ new</button>`;
   const themeChips=S.themes.map(t=>`<button class="chip ${(s.themes||[]).includes(t.id)?'on':''}" data-act="toggleTheme" data-id="${t.id}">${esc(t.name)}</button>`).join('')+`<button class="chip add" data-act="newTheme">+ new</button>`;
   const purposeChips=PURPOSE_TAGS.map(p=>`<button class="chip ${(s.purpose||[]).includes(p)?'on':''}" data-act="togglePurpose" data-v="${p}">${p}</button>`).join('')+(s.purpose||[]).filter(p=>!PURPOSE_TAGS.includes(p)).map(p=>`<button class="chip on" data-act="togglePurpose" data-v="${esc(p)}">${esc(p)}</button>`).join('')+`<button class="chip add" data-act="purposeCustom">+ custom</button>`;
   const outLinks=(s.links||[]).map(lk=>{const t=S.scenes.find(x=>x.id===lk.to);if(!t)return'';const verb=lk.kind==='payoff'?'sets up →':'leads to →';
@@ -1450,8 +1549,8 @@ function dlgHubCharacters(){
   if(!S.characters.length)return emptyDlg();
   const cur=(S.ui.dlgChar&&charById(S.ui.dlgChar))?S.ui.dlgChar:S.characters[0].id;
   const withOn=S.ui.dlgWith&&charById(S.ui.dlgWith)&&S.ui.dlgWith!==cur;
-  const picker=S.characters.map(c=>`<button class="chip ${cur===c.id?'on':''}" data-act="dlgPickChar" data-id="${c.id}" style="${cur===c.id?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('');
-  const withOpts=S.characters.filter(c=>c.id!==cur).map(c=>`<button class="chip sub ${S.ui.dlgWith===c.id?'on':''}" data-act="dlgPickWith" data-id="${c.id}" style="${S.ui.dlgWith===c.id?`background:${c.color};color:#1a1626`:''}">${esc(c.name)}</button>`).join('');
+  const picker=S.characters.map(c=>`<button class="chip ${cur===c.id?'on':''}" data-act="dlgPickChar" data-id="${c.id}" style="${cur===c.id?`background:${c.color};color:var(--on-swatch)`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('');
+  const withOpts=S.characters.filter(c=>c.id!==cur).map(c=>`<button class="chip sub ${S.ui.dlgWith===c.id?'on':''}" data-act="dlgPickWith" data-id="${c.id}" style="${S.ui.dlgWith===c.id?`background:${c.color};color:var(--on-swatch)`:''}">${esc(c.name)}</button>`).join('');
   let items=allDialogueOrdered();
   if(withOn){items=items.filter(({d})=>{const set=new Set([d.speaker].concat(d.recipients||[]));return set.has(cur)&&set.has(S.ui.dlgWith);});}
   else{items=items.filter(({d})=>d.speaker===cur||(d.recipients||[]).includes(cur));}
@@ -1538,7 +1637,7 @@ function facetDetail(l,f){
 function charPage(){
   const c=charById(S.ui.openCast);if(!c){go('cast');return;}
   c.attrs=c.attrs||{};
-  const fromOpts=S.locations.map(l=>`<button class="chip ${c.attrs.from===l.id?'on':''}" data-act="setFrom" data-id="${l.id}" style="${c.attrs.from===l.id?`background:${l.color};color:#1a1626`:''}">${l.parent?'↳ ':''}${esc(l.name)}</button>`).join('')
+  const fromOpts=S.locations.map(l=>`<button class="chip ${c.attrs.from===l.id?'on':''}" data-act="setFrom" data-id="${l.id}" style="${c.attrs.from===l.id?`background:${l.color};color:var(--on-swatch)`:''}">${l.parent?'↳ ':''}${esc(l.name)}</button>`).join('')
     +(c.attrs.from?`<button class="chip add" data-act="setFrom" data-id="">clear</button>`:'');
   const traits=c.traits.map(t=>`<div class="trait-set">
     <div class="trait-poles" style="margin-bottom:6px">
@@ -1654,11 +1753,11 @@ function worldRules(){
 }
 function objPage(){
   const o=S.objects.find(x=>x.id===S.ui.openObj);if(!o){go('world');return;}
-  const multi=(arr,items,act)=>items.map(it=>`<button class="chip ${arr.includes(it.id)?'on':''}" data-act="${act}" data-id="${it.id}" style="${arr.includes(it.id)&&it.color?`background:${it.color};color:#1a1626`:''}">${it.color?`<span class="dot" style="background:${it.color}"></span>`:''}${esc(it.label)}</button>`).join('');
+  const multi=(arr,items,act)=>items.map(it=>`<button class="chip ${arr.includes(it.id)?'on':''}" data-act="${act}" data-id="${it.id}" style="${arr.includes(it.id)&&it.color?`background:${it.color};color:var(--on-swatch)`:''}">${it.color?`<span class="dot" style="background:${it.color}"></span>`:''}${esc(it.label)}</button>`).join('');
   const chars=S.characters.map(c=>({id:c.id,label:c.name,color:c.color}));
   const locs=S.locations.map(l=>({id:l.id,label:l.name,color:l.color}));
   const scenes=flatScenes().map(s=>({id:s.id,label:(s.gist||'untitled').slice(0,26)}));
-  const ownerChips=chars.map(c=>`<button class="chip ${o.owner===c.id?'on':''}" data-act="objOwner" data-id="${c.id}" style="${o.owner===c.id?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')+(o.owner?`<button class="chip add" data-act="objOwner" data-id="">clear</button>`:'');
+  const ownerChips=chars.map(c=>`<button class="chip ${o.owner===c.id?'on':''}" data-act="objOwner" data-id="${c.id}" style="${o.owner===c.id?`background:${c.color};color:var(--on-swatch)`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`).join('')+(o.owner?`<button class="chip add" data-act="objOwner" data-id="">clear</button>`:'');
   root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goWorldObjects">${ICON.back} Objects</button>
     <span style="margin-left:auto"></span><button class="iconbtn" data-act="delObj">${ICON.trash}</button></div>
     <div class="view">
@@ -1675,12 +1774,12 @@ function objPage(){
 }
 function orgPage(){
   const o=S.orgs.find(x=>x.id===S.ui.openOrg);if(!o){go('world');return;}
-  const multi=(arr,items,act)=>items.map(it=>`<button class="chip ${arr.includes(it.id)?'on':''}" data-act="${act}" data-id="${it.id}" style="${arr.includes(it.id)&&it.color?`background:${it.color};color:#1a1626`:''}">${it.color?`<span class="dot" style="background:${it.color}"></span>`:''}${esc(it.label)}</button>`).join('');
+  const multi=(arr,items,act)=>items.map(it=>`<button class="chip ${arr.includes(it.id)?'on':''}" data-act="${act}" data-id="${it.id}" style="${arr.includes(it.id)&&it.color?`background:${it.color};color:var(--on-swatch)`:''}">${it.color?`<span class="dot" style="background:${it.color}"></span>`:''}${esc(it.label)}</button>`).join('');
   const chars=S.characters.map(c=>({id:c.id,label:c.name,color:c.color}));
   const locs=S.locations.map(l=>({id:l.id,label:l.name,color:l.color}));
   const scenes=flatScenes().map(s=>({id:s.id,label:(s.gist||'untitled').slice(0,26)}));
   const others=S.orgs.filter(x=>x.id!==o.id).map(x=>({id:x.id,label:x.name,color:x.color}));
-  const single=(cur,items,act,ph)=>items.map(c=>`<button class="chip ${cur===c.id?'on':''}" data-act="${act}" data-id="${c.id}" style="${cur===c.id?`background:${c.color||'var(--gold)'};color:#1a1626`:''}">${c.color?`<span class="dot" style="background:${c.color}"></span>`:''}${esc(c.label)}</button>`).join('')+(cur?`<button class="chip add" data-act="${act}" data-id="">clear</button>`:'')||`<span class="hint">${ph}</span>`;
+  const single=(cur,items,act,ph)=>items.map(c=>`<button class="chip ${cur===c.id?'on':''}" data-act="${act}" data-id="${c.id}" style="${cur===c.id?`background:${c.color||'var(--gold)'};color:var(--on-swatch)`:''}">${c.color?`<span class="dot" style="background:${c.color}"></span>`:''}${esc(c.label)}</button>`).join('')+(cur?`<button class="chip add" data-act="${act}" data-id="">clear</button>`:'')||`<span class="hint">${ph}</span>`;
   root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="goWorldOrgs">${ICON.back} Groups</button>
     <span style="margin-left:auto"></span><button class="iconbtn" data-act="delOrg">${ICON.trash}</button></div>
     <div class="view">
@@ -1924,7 +2023,7 @@ function renderNav(){
   const _ap=activeProject();
   if(_ap&&_ap.type==='poetry')return renderPoetryNav(S.ui.view);
   const v=S.ui.view;
-  const map=[['spine','Spine',ICON.spineN],['capture','Catch',ICON.featherN],['cast','Cast',ICON.cast],['world','World',ICON.world]];
+  const map=[['spine','Spine',ICON.spineN],['capture','Catch',ICON.featherN],['cast','Cast',ICON.cast],['world','World',ICON.world],['book','Book',ICON.gem]];
   const active=v==='scene'?'spine':(v==='castOne'?'cast':(v==='locOne'||v==='objOne'||v==='orgOne'?'world':(v==='compare'||v==='balance'||v==='themes'||v==='themeOne'||v==='threads'||v==='threadOne'||v==='dlgOne'||v==='ideas'||v==='ideaOne'||v==='forks'||v==='forkOne'||v==='clock'?'spine':(v==='heat'||v==='rels'||v==='relOne'||v==='dialogue'?'cast':v))));
   document.getElementById('nav').innerHTML=`<div class="nav-inner">${map.map(([k,lab,ic])=>`<button data-act="nav" data-v="${k}" class="${active===k?'on':''}">${ic}${k==='capture'&&S.slips.length?`<span class="badge">${S.slips.length}</span>`:''}<span>${lab}</span></button>`).join('')}</div>`;
 }
@@ -1951,12 +2050,14 @@ function renderMoveSheet(){const mv=S.ui.mv,s=S.scenes.find(x=>x.id===mv.scene);
   openSheet(`<h3>Move scene</h3><div class="hint" style="margin:-4px 0 14px;font-style:italic">“${esc((s.gist||'untitled').slice(0,48))}”</div>
     <div ${L}>Book</div><div class="chip-pick" style="margin:8px 0 16px">${books}</div>
     <div ${L}>Into which milestone</div><div class="chip-pick" style="margin-top:8px">${ms}</div>`);}
-function settingsSheet(){openSheet(`<h3>The Spine</h3>
+function settingsSheet(){const ct=currentTheme();openSheet(`<h3>The Spine</h3>
+  <div class="slip-lbl" style="margin-top:2px">Theme</div>
+  <div class="chip-pick" style="margin-bottom:6px">${THEMES.map(([k,lab])=>`<button class="chip ${ct===k?'on':''}" data-act="setTheme" data-v="${k}"><span class="dot" style="background:${THEME_BG[k]};border:1px solid var(--border)"></span>${lab}</button>`).join('')}</div>
   <div class="sheet-row" data-act="exportData">${ICON.down2}<div><div>Export everything</div><div class="s">Download a backup you can keep or move</div></div></div>
   <div class="sheet-row" data-act="importData">${ICON.up2}<div><div>Import a backup</div><div class="s">Replace what's here with a file</div></div></div>
   <div class="sheet-row" data-act="openCloud">${ICON.branch}<div><div>Cloud backup${Cloud.cfg()?(FB.user?' · on':' · set up'):' · off'}</div><div class="s">${Cloud.cfg()?(FB.user?'Signed in — back up or restore':'Sign in to back up'):'Optional — sync across devices with Firebase'}</div></div></div>
   <div class="sheet-row">${ICON.phone}<div><div>Keep it on your phone</div><div class="s">Share → Add to Home Screen</div></div></div>
-  <div class="sheet-row" style="color:var(--faint)">${ICON.info}<div><div>${S.scenes.length} scenes · ${S.characters.length} characters</div><div class="s">Saved on this device. Export now and then.</div></div></div>`);}
+  <div class="sheet-row" style="color:var(--faint)">${ICON.info}<div><div>${(S.scenes||[]).length} scenes · ${(S.characters||[]).length} characters</div><div class="s">Saved on this device. Export now and then.</div></div></div>`);}
 
 /* ---------------- EVENTS ---------------- */
 function bind(){root.onclick=handleClick;document.getElementById('nav').onclick=handleClick;root.oninput=handleInput;root.querySelectorAll('textarea.wound-ta').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});}
@@ -2029,7 +2130,7 @@ function dlgPage(){
   const sc=S.scenes.find(x=>x.id===d.scene);const cast=(sc&&sc.characters)||[];
   const castChars=cast.map(charById).filter(Boolean);
   const otherChars=S.characters.filter(c=>!cast.includes(c.id));
-  const cbtn=(c,act,on)=>`<button class="chip ${on?'on':''}" data-act="${act}" data-id="${c.id}" style="${on?`background:${c.color};color:#1a1626`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`;
+  const cbtn=(c,act,on)=>`<button class="chip ${on?'on':''}" data-act="${act}" data-id="${c.id}" style="${on?`background:${c.color};color:var(--on-swatch)`:''}"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</button>`;
   const spk=list=>list.map(c=>cbtn(c,'dlgSpeaker',d.speaker===c.id)).join('');
   const rcp=list=>list.map(c=>cbtn(c,'dlgRecip',d.recipients.includes(c.id))).join('');
   const anyChar=castChars.length||otherChars.length;
@@ -2067,6 +2168,7 @@ function dlgMoreHTML(d){
     <div class="field"><label>Notes</label><textarea class="gist-input" data-act="dlgNotes" placeholder="Delivery, context, anything\u2026">${esc(d.notes||'')}</textarea></div>`;
 }
 function dlgReturn(sid){
+  if(S.ui.bookReturn){S.ui.bookReturn=false;dlgFromEditor=false;dlgDraft=null;save();go('book');return;}
   const fromEd=dlgFromEditor;dlgFromEditor=false;dlgDraft=null;save();
   if(sid)S.ui.editScene=sid;
   go('scene');
@@ -2148,7 +2250,7 @@ function openAnnCard(seed){
 }
 function annPage(){
   const d=annDraft;if(!d){go('poemOne');return;}
-  const kinds=POEM_ANN.map(a=>`<button class="chip ${d.kind===a.k?'on':''}" data-act="annKind" data-v="${a.k}" style="${d.kind===a.k?`background:${a.color};color:#1a1626`:''}">${a.label}</button>`).join('');
+  const kinds=POEM_ANN.map(a=>`<button class="chip ${d.kind===a.k?'on':''}" data-act="annKind" data-v="${a.k}" style="${d.kind===a.k?`background:${a.color};color:var(--on-swatch)`:''}">${a.label}</button>`).join('');
   root.innerHTML=`<div class="editor-bar"><button class="backbtn" data-act="annCancel">${ICON.back} Back</button><span style="margin-left:auto"></span>${d.id?`<button class="iconbtn" data-act="annDelete">${ICON.trash}</button>`:''}</div>
     <div class="view">
       <div class="eyebrow">${d.id?'Edit note':'Annotate'}</div>
@@ -2161,6 +2263,7 @@ function annPage(){
   renderPoetryNav('poemOne');bind();root.querySelectorAll('[data-act="annNote"]').forEach(ta=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});save();
 }
 function annReturn(pid){
+  if(S.ui.bookReturn){S.ui.bookReturn=false;annFromEditor=false;annDraft=null;save();go('book');return;}
   const fromEd=annFromEditor;annFromEditor=false;annDraft=null;save();
   if(pid)S.ui.openPoem=pid;go('poemOne');
   if(fromEd&&pid){openEditor('poem',pid,'body');setTimeout(function(){edovSetMode('read');},90);}
@@ -2207,6 +2310,7 @@ function handleClick(e){
   switch(a){
     case 'nav':closeSheet();go(el.dataset.v);break;
     case 'settings':settingsSheet();break;
+    case 'setTheme':setTheme(el.dataset.v);settingsSheet();break;
     case 'goHome':closeSheet();LIB.activeId=null;persistLib();render();window.scrollTo(0,0);break;
     case 'openProject':closeSheet();openProjectById(id);render();window.scrollTo(0,0);break;
     case 'newProject':newProjectSheet();break;
@@ -2310,6 +2414,10 @@ function handleClick(e){
     case 'goIdeas':go('ideas');break;
     case 'goForks':go('forks');break;
     case 'goClock':go('clock');break;
+    case 'bookMode':S.ui.bookMode=el.dataset.v;S.ui.bookPage=S.ui.bookPage||0;render();window.scrollTo(0,0);break;
+    case 'bookPrev':bookTurn(-1);break;
+    case 'bookNext':bookTurn(1);break;
+    case 'bookTag':bookTag();break;
     case 'gapUnit':{const sc=curScene();if(sc){sc.gap={n:(sc.gap&&sc.gap.n)||1,unit:el.dataset.v};sceneEditor();}break;}
     case 'gapClear':{const sc=curScene();if(sc){delete sc.gap;sceneEditor();}break;}
     case 'viewBranch':S.ui.branch={fork:el.dataset.fk,option:el.dataset.id};go('spine');break;
@@ -2480,6 +2588,8 @@ function handleInput(e){
     case 'forkOptLabel':{const fk=S.forks.find(x=>x.id===el.dataset.fk);const o=fk&&(fk.options||[]).find(x=>x.id===el.dataset.id);if(o){o.label=el.value;save();}break;}
     case 'gapN':{const sc=curScene();if(sc){const v=parseFloat(el.value);if(!isNaN(v)&&v>0){sc.gap={n:v,unit:(sc.gap&&sc.gap.unit)||'day'};}else{delete sc.gap;}save();}break;}
     case 'poemTitle':{const p=(S.poems||[]).find(x=>x.id===S.ui.openPoem);if(p){p.title=el.value;save();}break;}
+    case 'bookTitle':{const ap=activeProject();const poetry=ap&&ap.type==='poetry';const it=(poetry?(S.poems||[]):S.scenes).find(x=>x.id===el.dataset.id);if(it){if(poetry)it.title=el.value;else it.gist=el.value;save();}break;}
+    case 'bookBody':{const ap=activeProject();const poetry=ap&&ap.type==='poetry';const it=(poetry?(S.poems||[]):S.scenes).find(x=>x.id===el.dataset.id);if(it){it.body=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'annNote':if(annDraft){annDraft.note=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';}break;
     case 'fragText':{const fr=S.fragments.find(x=>x.id===S.ui.openFrag);if(fr){fr.text=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
     case 'fragNote':{const fr=S.fragments.find(x=>x.id===S.ui.openFrag);if(fr){fr.note=el.value;el.style.height='auto';el.style.height=el.scrollHeight+'px';save();}break;}
@@ -2645,7 +2755,7 @@ const ICON={
   check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>',
   circle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/></svg>',
   x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 6 6 18M6 6l12 12"/></svg>',
-  pin2:'<svg viewBox="0 0 24 24" fill="none" stroke="#1a1626" stroke-width="1.8"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+  pin2:'<svg viewBox="0 0 24 24" fill="none" stroke="var(--on-swatch)" stroke-width="1.8"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>',
   phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>',
   info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>',
   spineN:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3v18"/><circle cx="12" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg>',
@@ -2692,7 +2802,7 @@ render();
     return false;
   }
   function libForCloud(){
-    return {version:3,_t:LIB._t||Date.now(),projects:(LIB.projects||[]).map(function(p){
+    return {version:3,_t:LIB._t||Date.now(),theme:LIB.theme||null,projects:(LIB.projects||[]).map(function(p){
       var d=Object.assign({},p.data||{}); delete d.ui;
       return {id:p.id,type:p.type,name:p.name,createdAt:p.createdAt,data:d};
     })};
@@ -2728,7 +2838,7 @@ render();
   }
   function adopt(cloudLib,cloudT){
     var keep=LIB.activeId;
-    LIB=migrateLib(cloudLib); LIB._t=cloudT;
+    var _keepTheme=LIB.theme; LIB=migrateLib(cloudLib); LIB._t=cloudT; if(!LIB.theme&&_keepTheme)LIB.theme=_keepTheme; applyTheme();
     if(keep&&LIB.projects.some(function(p){return p.id===keep;})) LIB.activeId=keep; else LIB.activeId=null;
     var ap=activeProject(); S=(ap&&ap.data)||LIB.projects[0].data;
     lastSig=contentSig(); FB.lastSeenT=cloudT; FB.lastT=cloudT; FB.pulled=true;
